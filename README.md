@@ -4,6 +4,8 @@ iQuit is a small, open-source macOS menu bar app that clears attention clutter b
 
 The idea came from wanting a maintained, native alternative to MagicQuit: conservative by default, friendly to configure, and focused on "this app is just sitting here taking space in my head."
 
+![iQuit dashboard](docs/images/dashboard.png)
+
 ## Download
 
 Download the latest `iQuit.dmg` from GitHub Releases, drag `iQuit.app` into Applications, and launch it from there.
@@ -37,6 +39,16 @@ iQuit asks before cleanup by default. If you ignore, skip, or time out a prompt,
 - **Idle Quit**: if a background app stays idle after 1 hour, iQuit asks whether to Quit.
 - **Never**: turn off Idle Quit per app for apps that should stay running.
 - **Protect**: use the lock button or prompt hand button to ignore an app completely.
+
+## Screenshots
+
+When iQuit asks, it uses a small floating prompt with a countdown bar. Hide keeps the app running; Quit asks the app to close politely.
+
+![iQuit floating prompt](docs/images/ask-prompt.png)
+
+First launch explains the defaults, protected apps, and optional Accessibility access.
+
+![iQuit onboarding](docs/images/onboarding.png)
 
 ## Run From Source
 

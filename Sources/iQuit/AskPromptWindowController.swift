@@ -141,6 +141,7 @@ private struct AskPromptView: View {
                         .buttonStyle(PromptActionButtonStyle(tint: .blue))
                         .controlSize(.small)
                         .fixedSize()
+                        .help("Put this app's windows away. The app keeps running.")
                     }
 
                     Button(role: .destructive, action: onQuit) {
@@ -149,22 +150,23 @@ private struct AskPromptView: View {
                     .buttonStyle(PromptActionButtonStyle(tint: .red))
                     .controlSize(.small)
                     .fixedSize()
+                    .help("Ask this app to close. It can still warn you about unsaved work.")
 
                     Button(action: onIgnore) {
                         Image(systemName: "hand.raised")
                             .font(.system(size: 13, weight: .semibold))
                             .frame(width: 18, height: 18)
                     }
-                    .buttonStyle(.borderless)
-                    .help("Ignore this app")
+                    .buttonStyle(PromptIconButtonStyle())
+                    .help("Never let iQuit hide or quit this app automatically.")
 
                     Button(action: onSkip) {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .semibold))
                             .frame(width: 18, height: 18)
                     }
-                    .buttonStyle(.borderless)
-                    .help("Do nothing")
+                    .buttonStyle(PromptIconButtonStyle())
+                    .help("Do nothing now. iQuit will wait before asking again.")
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
@@ -192,14 +194,63 @@ private struct PromptActionButtonStyle: ButtonStyle {
     var tint: Color
 
     func makeBody(configuration: Configuration) -> some View {
+        PromptActionButtonBody(configuration: configuration, tint: tint)
+    }
+}
+
+private struct PromptActionButtonBody: View {
+    let configuration: ButtonStyle.Configuration
+    var tint: Color
+    @State private var isHovering = false
+
+    var body: some View {
         configuration.label
             .font(.callout.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(
-                tint.opacity(configuration.isPressed ? 0.72 : 0.92),
+                tint.opacity(configuration.isPressed ? 0.72 : (isHovering ? 1 : 0.92)),
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(.white.opacity(isHovering ? 0.28 : 0.0), lineWidth: 1)
+            }
+            .shadow(color: tint.opacity(isHovering ? 0.36 : 0), radius: isHovering ? 9 : 0, y: isHovering ? 3 : 0)
+            .scaleEffect(configuration.isPressed ? 0.98 : (isHovering ? 1.035 : 1))
+            .animation(.easeOut(duration: 0.14), value: isHovering)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+            .onHover { isHovering = $0 }
+    }
+}
+
+private struct PromptIconButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PromptIconButtonBody(configuration: configuration)
+    }
+}
+
+private struct PromptIconButtonBody: View {
+    let configuration: ButtonStyle.Configuration
+    @State private var isHovering = false
+
+    var body: some View {
+        configuration.label
+            .foregroundStyle(isHovering ? .primary : .secondary)
+            .padding(7)
+            .background(
+                Color.white.opacity(configuration.isPressed ? 0.12 : (isHovering ? 0.16 : 0)),
+                in: Circle()
+            )
+            .overlay {
+                Circle()
+                    .strokeBorder(.white.opacity(isHovering ? 0.18 : 0), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(isHovering ? 0.28 : 0), radius: isHovering ? 7 : 0, y: isHovering ? 3 : 0)
+            .scaleEffect(configuration.isPressed ? 0.94 : (isHovering ? 1.08 : 1))
+            .animation(.easeOut(duration: 0.14), value: isHovering)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+            .onHover { isHovering = $0 }
     }
 }

@@ -3,3 +3,4 @@
 // DEVELOPMENT_TEAM =
 // IQUIT_BUNDLE_IDENTIFIER = com.yourname.iquit
 // CODE_SIGN_IDENTITY = -
+// NOTARY_KEYCHAIN_PROFILE = iquit-notary

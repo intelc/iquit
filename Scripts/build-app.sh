@@ -84,6 +84,10 @@ codesign_args=(
   --identifier "$BUNDLE_IDENTIFIER"
 )
 
+if [[ "$CODE_SIGN_IDENTITY" != "-" ]]; then
+  codesign_args+=(--timestamp --options runtime)
+fi
+
 if [[ -f "$ENTITLEMENTS_FILE" ]]; then
   codesign_args+=(--entitlements "$ENTITLEMENTS_FILE")
 fi

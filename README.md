@@ -63,6 +63,32 @@ Edit `Config/iQuit.local.xcconfig` if you want a different stable bundle identif
 
 The packaged disk image is written to `.build/iQuit.dmg`.
 
+## Notarized Release
+
+Developer ID signing and notarization use ignored local config plus a keychain profile, so Apple credentials are never committed.
+
+Create `Config/iQuit.local.xcconfig`:
+
+```xcconfig
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+IQUIT_BUNDLE_IDENTIFIER = com.yourname.iquit
+CODE_SIGN_IDENTITY = Developer ID Application: Your Name (YOUR_TEAM_ID)
+NOTARY_KEYCHAIN_PROFILE = iquit-notary
+```
+
+Store notarization credentials in the macOS keychain:
+
+```sh
+xcrun notarytool store-credentials iquit-notary --team-id YOUR_TEAM_ID
+```
+
+Then build, submit, and staple:
+
+```sh
+./Scripts/build-dmg.sh
+./Scripts/notarize-dmg.sh
+```
+
 ## Roadmap
 
 - Launch at login

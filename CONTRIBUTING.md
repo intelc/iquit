@@ -25,6 +25,12 @@ macOS privacy grants attach to the app bundle identity, so the signed bundle pat
 
 The app bundle is written to `.build/iQuit.app`; the disk image is written to `.build/iQuit.dmg`.
 
+For notarized releases, put Developer ID and notary profile settings in ignored `Config/iQuit.local.xcconfig`, store credentials with `xcrun notarytool store-credentials`, then run:
+
+```sh
+./Scripts/notarize-dmg.sh
+```
+
 ## Code Notes
 
 - Keep cleanup decisions in `iQuitCore` where they can be tested without AppKit.

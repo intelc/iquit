@@ -6,4 +6,10 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+.env
+.env.*
+*.p8
+*.cer
+*.p12
+*.mobileprovision
 Config/iQuit.local.xcconfig

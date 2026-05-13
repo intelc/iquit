@@ -1,54 +1,69 @@
 # iQuit
 
-iQuit is a small, open-source macOS menu bar app that clears attention clutter by hiding or gracefully quitting apps after they have been idle for a while.
+iQuit is a tiny macOS menu bar app that hides or quits apps you are no longer using.
 
-The idea came from wanting a maintained, native alternative to MagicQuit: conservative by default, friendly to configure, and focused on "this app is just sitting here taking space in my head."
+It keeps your desktop calmer by watching for apps that are just sitting around, then asks before it hides their windows or quits them. It is open source, native SwiftUI, and conservative by default.
 
 ![iQuit dashboard](docs/images/dashboard.png)
 
-## Download
+## Get iQuit
 
-Download the latest `iQuit.dmg` from GitHub Releases, drag `iQuit.app` into Applications, and launch it from there.
+Download the latest notarized DMG:
 
-The first launch explains the two cleanup systems and offers to enable Accessibility access. Accessibility access is optional, but it lets iQuit minimize individual windows instead of hiding an entire app.
+**[Download iQuit.dmg](https://github.com/intelc/iquit/releases/latest/download/iQuit.dmg)**
 
-## Features
+Then drag `iQuit.app` into Applications and launch it. The first launch explains the two cleanup systems and asks whether you want to enable optional Window Access.
 
-- Native SwiftUI menu bar app for macOS 14+
-- Tracks foreground app usage with `NSWorkspace`
-- Detects visible app windows with CoreGraphics
-- Uses bundle identifiers for stable per-app rules
-- Visible-window cleanup: asks whether to hide or quit after 20 minutes by default
-- Background idle cleanup: asks whether to quit after 1 hour by default
-- Protected apps
-- Floating custom review prompt with a 30-second timeout
-- 10-minute cooldown after ignored or skipped prompts
-- Accessibility-backed per-window minimize when Window access is granted
-- Graceful quit via `NSRunningApplication.terminate()`
-- First-run onboarding for permissions and the two cleanup systems
+Requires macOS 14 or newer.
 
-## Safety Model
+## Why iQuit
 
-iQuit does not force quit apps. A quit request is the same polite system-level quit apps normally receive, so apps with unsaved work can still show their own prompts.
+iQuit is for the everyday Mac problem where apps stay open long after they stopped being useful.
 
-iQuit asks before cleanup by default. If you ignore, skip, or time out a prompt, that app enters a short cooldown so it will not immediately ask again. Protected apps are never hidden or quit automatically.
+- Keeps old windows from piling up on your desktop
+- Quits forgotten background apps without force quitting them
+- Lets you protect apps that should never be touched
+- Uses stable per-app rules based on bundle identifiers
+- Works quietly from the menu bar
+- Uses a native, small, readable UI
 
 ## How It Works
 
-- **Visible Windows**: if an inactive app still has visible windows after 20 minutes, iQuit asks whether to Hide or Quit.
-- **Idle Quit**: if a background app stays idle after 1 hour, iQuit asks whether to Quit.
-- **Never**: turn off Idle Quit per app for apps that should stay running.
-- **Protect**: use the lock button or prompt hand button to ignore an app completely.
+iQuit has two cleanup systems:
 
-## Screenshots
+- **Visible Windows**: if an inactive app still has windows on screen after 20 minutes, iQuit asks whether to Hide or Quit.
+- **Idle Quit**: if a background app stays idle after 1 hour, iQuit asks whether to Quit.
+
+You can change the defaults globally or per app. Set Idle Quit to **Never** for apps that should stay open, or use **Protect** to make iQuit ignore an app completely.
 
 When iQuit asks, it uses a small floating prompt with a countdown bar. Hide keeps the app running; Quit asks the app to close politely.
 
 ![iQuit floating prompt](docs/images/ask-prompt.png)
 
+## Safety
+
+iQuit does not force quit apps. A quit request is the same polite system-level quit apps normally receive, so apps with unsaved work can still show their own prompts.
+
+iQuit asks before cleanup by default. If you ignore, skip, or time out a prompt, that app enters a short cooldown so it will not immediately ask again. Protected apps are never hidden or quit automatically.
+
+Window Access is optional. When granted, iQuit can minimize individual windows. Without it, Hide falls back to hiding the whole app.
+
+## Screenshots
+
 First launch explains the defaults, protected apps, and optional Accessibility access.
 
 ![iQuit onboarding](docs/images/onboarding.png)
+
+## Features
+
+- Native SwiftUI menu bar app
+- CoreGraphics visible-window detection
+- Foreground app tracking with `NSWorkspace`
+- Per-bundle rules
+- 30-second review prompts
+- 10-minute cooldown after ignored or skipped prompts
+- Accessibility-backed per-window minimize when Window Access is granted
+- Developer ID signed and notarized DMG
 
 ## Run From Source
 

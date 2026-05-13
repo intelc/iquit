@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Added a generated minimal app icon for Finder, DMG, and system display.
+
 ## 0.1.0
 
 - Added native macOS menu bar app for monitoring unused apps.

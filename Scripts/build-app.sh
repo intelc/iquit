@@ -7,6 +7,7 @@ APP_NAME="iQuit"
 APP_DIR="$ROOT/.build/$APP_NAME.app"
 BIN_DIR="$APP_DIR/Contents/MacOS"
 RES_DIR="$APP_DIR/Contents/Resources"
+ICON_PATH="$RES_DIR/iQuit.icns"
 CONFIG_FILE="$ROOT/Config/iQuit-Debug.xcconfig"
 LOCAL_CONFIG_FILE="$ROOT/Config/iQuit.local.xcconfig"
 ENTITLEMENTS_FILE="$ROOT/iQuit.entitlements"
@@ -46,6 +47,8 @@ mkdir -p "$BIN_DIR" "$RES_DIR"
 cp "$ROOT/.build/$CONFIG/iQuit" "$BIN_DIR/iQuit"
 chmod +x "$BIN_DIR/iQuit"
 
+/usr/bin/swift "$ROOT/Scripts/generate-app-icon.swift" "$ICON_PATH"
+
 cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -59,12 +62,14 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <string>iQuit</string>
   <key>CFBundleDisplayName</key>
   <string>iQuit</string>
+  <key>CFBundleIconFile</key>
+  <string>iQuit.icns</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
+  <string>0.1.1</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>2</string>
   <key>LSMinimumSystemVersion</key>
   <string>14.0</string>
   <key>LSUIElement</key>

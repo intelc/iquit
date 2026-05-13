@@ -1,0 +1,5 @@
+// Optional per-developer overrides.
+// Keep Config/iQuit.local.xcconfig untracked so TCC grants stay local.
+// DEVELOPMENT_TEAM =
+// IQUIT_BUNDLE_IDENTIFIER = com.yourname.iquit
+// CODE_SIGN_IDENTITY = -

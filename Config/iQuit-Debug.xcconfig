@@ -1,0 +1,5 @@
+DEVELOPMENT_TEAM =
+IQUIT_BUNDLE_IDENTIFIER = com.yihengchen.iquit
+CODE_SIGN_IDENTITY = -
+
+#include? "iQuit.local.xcconfig"

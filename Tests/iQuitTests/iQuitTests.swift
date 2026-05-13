@@ -1,0 +1,70 @@
+import Foundation
+@testable import iQuitCore
+import Testing
+
+@Test func visibleWindowDecisionIgnoresActiveApps() {
+    let engine = IdleDecisionEngine()
+    let now = Date()
+    let policy = AppPolicy(bundleID: "com.example.mail", displayName: "Mail", visibleWindowMinutes: 5)
+
+    let decision = engine.visibleWindowDecision(
+        settings: AppSettings(),
+        policy: policy,
+        now: now,
+        lastActiveAt: now.addingTimeInterval(-600),
+        isActive: true,
+        hasVisibleWindows: true,
+        hasPendingCleanup: false
+    )
+
+    #expect(decision == .ignore("App is active"))
+}
+
+@Test func visibleWindowDecisionOffersHideOrQuit() {
+    let engine = IdleDecisionEngine()
+    let now = Date()
+    let policy = AppPolicy(bundleID: "com.example.word", displayName: "Word", visibleWindowMinutes: 5)
+
+    let decision = engine.visibleWindowDecision(
+        settings: AppSettings(),
+        policy: policy,
+        now: now,
+        lastActiveAt: now.addingTimeInterval(-600),
+        isActive: false,
+        hasVisibleWindows: true,
+        hasPendingCleanup: false
+    )
+
+    guard case let .ask(cleanup) = decision else {
+        Issue.record("Expected pending cleanup")
+        return
+    }
+
+    #expect(cleanup.bundleID == "com.example.word")
+    #expect(cleanup.action == CleanupAction.ask)
+    #expect(cleanup.trigger == CleanupTrigger.visibleWindow)
+}
+
+@Test func idleAppDecisionOffersQuitOnlyWhenHiddenOrWindowless() {
+    let engine = IdleDecisionEngine()
+    let now = Date()
+    let policy = AppPolicy(bundleID: "com.example.preview", displayName: "Preview", idleQuitMinutes: 5)
+
+    let decision = engine.idleAppDecision(
+        settings: AppSettings(),
+        policy: policy,
+        now: now,
+        lastActiveAt: now.addingTimeInterval(-600),
+        isActive: false,
+        hasVisibleWindows: false,
+        hasPendingCleanup: false
+    )
+
+    guard case let .ask(cleanup) = decision else {
+        Issue.record("Expected pending cleanup")
+        return
+    }
+
+    #expect(cleanup.action == CleanupAction.quit)
+    #expect(cleanup.trigger == CleanupTrigger.idleApp)
+}

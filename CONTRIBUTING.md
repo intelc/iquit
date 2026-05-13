@@ -25,7 +25,7 @@ macOS privacy grants attach to the app bundle identity, so the signed bundle pat
 
 The app bundle is written to `.build/iQuit.app`; the disk image is written to `.build/iQuit.dmg`.
 
-For notarized releases, put Developer ID and notary profile settings in ignored `Config/iQuit.local.xcconfig`, store credentials with `xcrun notarytool store-credentials`, then run:
+For notarized releases, iQuit follows Mosspath's release shape: Developer ID signing with hardened runtime, signed DMG, `notarytool`, stapling, and Gatekeeper validation. Put Developer ID and notary profile settings in ignored `Config/iQuit.local.xcconfig`, store credentials with `xcrun notarytool store-credentials`, then run:
 
 ```sh
 ./Scripts/notarize-dmg.sh
@@ -36,3 +36,4 @@ For notarized releases, put Developer ID and notary profile settings in ignored 
 - Keep cleanup decisions in `iQuitCore` where they can be tested without AppKit.
 - Keep macOS permission and window-management code isolated in the app target.
 - Prefer conservative defaults: prompt first, never force quit, and make protection easy.
+- Run `Scripts/scan-secrets.sh` before release commits to catch local Apple signing values, private keys, tokens, and machine-specific paths.

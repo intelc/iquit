@@ -65,7 +65,7 @@ The packaged disk image is written to `.build/iQuit.dmg`.
 
 ## Notarized Release
 
-Developer ID signing and notarization use ignored local config plus a keychain profile, so Apple credentials are never committed.
+Developer ID signing and notarization follow the same pattern as Mosspath's release pipeline: ignored local signing config, Developer ID + hardened runtime, a signed DMG, `notarytool --wait`, stapling, then Gatekeeper validation against both the DMG and the app inside it.
 
 Create `Config/iQuit.local.xcconfig`:
 
@@ -76,18 +76,20 @@ CODE_SIGN_IDENTITY = Developer ID Application: Your Name (YOUR_TEAM_ID)
 NOTARY_KEYCHAIN_PROFILE = iquit-notary
 ```
 
-Store notarization credentials in the macOS keychain:
+Store notarization credentials in the macOS keychain. This can be an Apple ID app-specific password or an App Store Connect API key profile:
 
 ```sh
 xcrun notarytool store-credentials iquit-notary --team-id YOUR_TEAM_ID
 ```
 
-Then build, submit, and staple:
+Then build, submit, staple, and validate:
 
 ```sh
 ./Scripts/build-dmg.sh
 ./Scripts/notarize-dmg.sh
 ```
+
+CI can use the Mosspath-style fallback environment variables instead of a keychain profile: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`.
 
 ## Roadmap
 

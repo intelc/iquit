@@ -4,7 +4,7 @@ iQuit is a tiny macOS menu bar app that hides or quits apps you are no longer us
 
 It keeps your desktop calmer by watching for apps that are just sitting around, then asks before it hides their windows or quits them. It is open source, native SwiftUI, and conservative by default.
 
-![iQuit dashboard](docs/images/dashboard.png)
+![iQuit clears unused windows](docs/images/hero-cleanup.gif)
 
 ## Get iQuit
 
@@ -49,6 +49,10 @@ iQuit asks before cleanup by default. If you ignore, skip, or time out a prompt,
 Window Access is optional. When granted, iQuit can minimize individual windows. Without it, Hide falls back to hiding the whole app.
 
 ## Screenshots
+
+The dashboard keeps the two cleanup systems separate: blue for visible-window cleanup, red for idle quit.
+
+![iQuit dashboard](docs/images/dashboard.png)
 
 First launch explains the defaults, protected apps, and optional Accessibility access.
 

@@ -15,7 +15,7 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Welcome to iQuit")
                         .font(.largeTitle.weight(.bold))
-                    Text("iQuit watches for apps you are no longer using, then asks before it hides or quits them.")
+                    Text("iQuit checks for apps you are no longer using, then asks before it hides or quits them.")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

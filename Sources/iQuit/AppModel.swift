@@ -7,7 +7,7 @@ import iQuitCore
 final class AppModel: NSObject, ObservableObject {
     @Published private(set) var runningApps: [RunningApp] = []
     @Published private(set) var pendingCleanups: [PendingCleanup] = []
-    @Published private(set) var lastEventMessage = "Watching quietly."
+    @Published private(set) var lastEventMessage = "Keeping things tidy."
     @Published private(set) var accessibilityTrusted = false
     @Published private(set) var loginItemStatusDescription = LoginItemManager.statusDescription
     @Published private(set) var hasCompletedOnboarding: Bool

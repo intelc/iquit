@@ -87,18 +87,18 @@ struct MenuBarView: View {
                     .toggleStyle(.switch)
             }
 
-            HStack(spacing: 8) {
-                StatusPill(
-                    title: model.isPaused ? "Paused" : "Watching",
-                    systemImage: model.isPaused ? "pause.circle" : "eye",
-                    tint: model.isPaused ? .orange : .green
-                )
-                if !model.pendingCleanups.isEmpty {
-                    StatusPill(
-                        title: "\(model.pendingCleanups.count) pending",
-                        systemImage: "tray",
-                        tint: .blue
-                    )
+            if model.isPaused || !model.pendingCleanups.isEmpty {
+                HStack(spacing: 8) {
+                    if model.isPaused {
+                        StatusPill(title: "Paused", systemImage: "pause.circle", tint: .orange)
+                    }
+                    if !model.pendingCleanups.isEmpty {
+                        StatusPill(
+                            title: "\(model.pendingCleanups.count) pending",
+                            systemImage: "tray",
+                            tint: .blue
+                        )
+                    }
                 }
             }
         }

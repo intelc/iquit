@@ -9,6 +9,7 @@ final class AppModel: NSObject, ObservableObject {
     @Published private(set) var pendingCleanups: [PendingCleanup] = []
     @Published private(set) var lastEventMessage = "Watching quietly."
     @Published private(set) var accessibilityTrusted = false
+    @Published private(set) var loginItemStatusDescription = LoginItemManager.statusDescription
     @Published private(set) var hasCompletedOnboarding: Bool
     @Published var isOnboardingPresented: Bool
     @Published var settings: AppSettings {
@@ -47,6 +48,7 @@ final class AppModel: NSObject, ObservableObject {
             }
         )
         observeWorkspace()
+        syncLoginItemWithPreference()
         refreshRunningApplications()
         startTimer()
     }
@@ -98,6 +100,20 @@ final class AppModel: NSObject, ObservableObject {
         policy.idleQuitMinutes = max(1, minutes)
         policy.displayName = app.displayName
         settings.policies[app.bundleID] = policy
+    }
+
+    func setLaunchAtLogin(_ isEnabled: Bool) {
+        do {
+            try LoginItemManager.setEnabled(isEnabled)
+            settings.launchAtLogin = isEnabled
+            loginItemStatusDescription = LoginItemManager.statusDescription
+            lastEventMessage = isEnabled
+                ? "iQuit will start when you sign in."
+                : "iQuit will not start when you sign in."
+        } catch {
+            loginItemStatusDescription = LoginItemManager.statusDescription
+            lastEventMessage = "Could not update login item: \(error.localizedDescription)"
+        }
     }
 
     func setProtected(_ isProtected: Bool, for app: RunningApp) {
@@ -233,8 +249,19 @@ final class AppModel: NSObject, ObservableObject {
 
     private func tick() {
         accessibilityTrusted = AccessibilityWindowManager.isTrusted()
+        loginItemStatusDescription = LoginItemManager.statusDescription
         refreshRunningApplications()
         evaluateIdleApps()
+    }
+
+    private func syncLoginItemWithPreference() {
+        do {
+            try LoginItemManager.setEnabled(settings.launchAtLogin)
+            loginItemStatusDescription = LoginItemManager.statusDescription
+        } catch {
+            loginItemStatusDescription = LoginItemManager.statusDescription
+            lastEventMessage = "Could not update login item: \(error.localizedDescription)"
+        }
     }
 
     private func refreshRunningApplications() {

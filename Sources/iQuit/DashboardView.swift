@@ -90,6 +90,9 @@ private struct HeaderBar: View {
                     minutes: $model.settings.defaultIdleQuitMinutes
                 )
 
+                LoginItemControl()
+                    .environmentObject(model)
+
                 Spacer()
             }
         }
@@ -349,6 +352,33 @@ private struct DefaultRuleControl: View {
     }
 }
 
+private struct LoginItemControl: View {
+    @EnvironmentObject private var model: AppModel
+
+    var body: some View {
+        Toggle(isOn: Binding(
+            get: { model.settings.launchAtLogin },
+            set: { model.setLaunchAtLogin($0) }
+        )) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.clockwise.circle")
+                Text("Start at login")
+                    .font(.callout.weight(.semibold))
+                Text(model.loginItemStatusDescription)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .toggleStyle(.button)
+        .controlSize(.regular)
+        .tint(.purple)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .help("Open iQuit automatically after you sign in to your Mac.")
+    }
+}
+
 struct PreferencesView: View {
     @EnvironmentObject private var model: AppModel
 
@@ -376,6 +406,19 @@ struct PreferencesView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Toggle(isOn: Binding(
+                get: { model.settings.launchAtLogin },
+                set: { model.setLaunchAtLogin($0) }
+            )) {
+                HStack {
+                    Text("Start iQuit when you sign in")
+                    Spacer()
+                    Text(model.loginItemStatusDescription)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .help("Open iQuit automatically after you sign in to your Mac.")
         }
     }
 }

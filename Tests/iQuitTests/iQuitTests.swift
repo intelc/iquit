@@ -2,6 +2,15 @@ import Foundation
 @testable import iQuitCore
 import Testing
 
+@Test func appSettingsLaunchAtLoginDefaultsToOn() throws {
+    let settings = AppSettings()
+    #expect(settings.launchAtLogin)
+
+    let legacyJSON = #"{"isEnabled":true,"defaultVisibleWindowMinutes":20,"defaultIdleQuitMinutes":60,"reviewBeforeCleanup":true,"reviewDelaySeconds":60,"policies":{}}"#
+    let decoded = try JSONDecoder().decode(AppSettings.self, from: Data(legacyJSON.utf8))
+    #expect(decoded.launchAtLogin)
+}
+
 @Test func visibleWindowDecisionIgnoresActiveApps() {
     let engine = IdleDecisionEngine()
     let now = Date()

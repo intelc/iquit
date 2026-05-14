@@ -4,6 +4,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var isProtectedSectionExpanded = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,12 +15,20 @@ struct DashboardView: View {
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
+                    if !model.protectedRunningApps.isEmpty {
+                        ProtectedAppsSection(
+                            apps: model.protectedRunningApps,
+                            isExpanded: $isProtectedSectionExpanded
+                        )
+                        .environmentObject(model)
+                    }
+
                     if !model.pendingCleanups.isEmpty {
                         PendingReviewPanel()
                             .environmentObject(model)
                     }
 
-                    ForEach(model.sortedRunningApps) { app in
+                    ForEach(model.cleanupRunningApps) { app in
                         AppPolicyRow(app: app)
                             .environmentObject(model)
                     }
@@ -33,6 +42,50 @@ struct DashboardView: View {
             OnboardingView()
                 .environmentObject(model)
         }
+    }
+}
+
+private struct ProtectedAppsSection: View {
+    @EnvironmentObject private var model: AppModel
+    var apps: [RunningApp]
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            LazyVStack(alignment: .leading, spacing: 8) {
+                ForEach(apps) { app in
+                    AppPolicyRow(app: app)
+                        .environmentObject(model)
+                }
+            }
+            .padding(.top, 8)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+
+                Text("Protected")
+                    .font(.callout.weight(.semibold))
+
+                Text("\(apps.count)")
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(.quaternary, in: Capsule())
+
+                Spacer()
+
+                Text("Ignored by iQuit")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -241,6 +294,7 @@ private struct AppPolicyRow: View {
                     set: { model.setVisibleWindowMinutes($0, for: app) }
                 )
             )
+            .disabled(policy.isProtected)
 
             IdleQuitRuleControl(
                 title: "Quit",
@@ -255,6 +309,7 @@ private struct AppPolicyRow: View {
                     set: { model.setIdleQuitMinutes($0, for: app) }
                 )
             )
+            .disabled(policy.isProtected)
 
             Menu {
                 Button {
@@ -275,11 +330,13 @@ private struct AppPolicyRow: View {
             .menuStyle(.borderlessButton)
             .frame(width: 44)
             .help("Manual actions")
+            .disabled(policy.isProtected)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .opacity(policy.isProtected ? 0.54 : 1)
     }
 }
 

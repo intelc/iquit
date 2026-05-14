@@ -77,6 +77,14 @@ final class AppModel: NSObject, ObservableObject {
         }
     }
 
+    var protectedRunningApps: [RunningApp] {
+        sortedRunningApps.filter { policy(for: $0).isProtected }
+    }
+
+    var cleanupRunningApps: [RunningApp] {
+        sortedRunningApps.filter { !policy(for: $0).isProtected }
+    }
+
     var activeAppName: String {
         runningApps.first(where: \.isActive)?.displayName ?? "No active app"
     }

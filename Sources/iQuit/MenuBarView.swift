@@ -92,8 +92,15 @@ struct MenuBarView: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("iQuit")
-                    .font(.title3.weight(.bold))
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("iQuit")
+                        .font(.title3.weight(.bold))
+
+                    Text("v\(Self.appVersion)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
                 Text(model.lastEventMessage)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
@@ -119,6 +126,10 @@ struct MenuBarView: View {
         }
         .padding(10)
         .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private static var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
     }
 
     private var pendingSection: some View {

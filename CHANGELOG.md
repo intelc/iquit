@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+
+- Added a small version label to the menu bar popover header.
+
 ## 0.1.6
 
 - Added Sparkle-powered in-app updates with quiet background checks and manual Check for Updates controls.

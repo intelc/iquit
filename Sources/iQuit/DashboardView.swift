@@ -41,38 +41,29 @@ private struct HeaderBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 16) {
-                Label("iQuit", systemImage: "moon.zzz.fill")
+                Text("iQuit")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .labelStyle(.titleAndIcon)
 
                 Toggle("Enabled", isOn: $model.settings.isEnabled)
                     .toggleStyle(.switch)
 
-                StatusPill(
-                    title: model.isPaused ? "Paused" : "Watching",
-                    systemImage: model.isPaused ? "pause.circle" : "eye",
-                    tint: model.isPaused ? .orange : .green
-                )
-                StatusPill(title: model.activeAppName, systemImage: "cursorarrow.rays", tint: .indigo)
-                Button {
-                    model.requestAccessibilityAccess()
-                } label: {
-                    Label(
-                        model.accessibilityTrusted ? "Window access" : "Enable window access",
-                        systemImage: model.accessibilityTrusted ? "checkmark.shield" : "exclamationmark.shield"
-                    )
+                if !model.accessibilityTrusted {
+                    Button {
+                        model.requestAccessibilityAccess()
+                    } label: {
+                        Label("Enable window access", systemImage: "exclamationmark.shield")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.orange)
+                    .help("Accessibility access lets iQuit minimize individual windows instead of hiding the whole app.")
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(model.accessibilityTrusted ? .green : .orange)
-                .help("Accessibility access lets iQuit minimize individual windows instead of hiding the whole app.")
 
                 Spacer(minLength: 12)
 
-                HeaderMetric(value: "\(model.runningApps.count)", label: "apps", systemImage: "square.grid.2x2")
-                HeaderMetric(value: "\(model.pendingCleanups.count)", label: "review", systemImage: "tray")
-                HeaderMetric(value: "\(model.settings.policies.count)", label: "rules", systemImage: "slider.horizontal.3")
+                if !model.pendingCleanups.isEmpty {
+                    HeaderMetric(value: "\(model.pendingCleanups.count)", label: "review", systemImage: "tray")
+                }
             }
 
             HStack(spacing: 14) {
@@ -444,25 +435,24 @@ private struct LoginItemControl: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        Toggle(isOn: Binding(
-            get: { model.settings.launchAtLogin },
-            set: { model.setLaunchAtLogin($0) }
-        )) {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.clockwise.circle")
+        HStack(spacing: 8) {
+            Toggle(isOn: Binding(
+                get: { model.settings.launchAtLogin },
+                set: { model.setLaunchAtLogin($0) }
+            )) {
                 Text("Start at login")
                     .font(.callout.weight(.semibold))
-                Text(model.loginItemStatusDescription)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
             }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+
+            Text(model.loginItemStatusDescription)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
         }
-        .toggleStyle(.button)
-        .controlSize(.regular)
-        .tint(.purple)
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.vertical, 6)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .help("Open iQuit automatically after you sign in to your Mac.")
     }
 }

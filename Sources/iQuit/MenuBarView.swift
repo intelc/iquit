@@ -93,16 +93,13 @@ struct MenuBarView: View {
                     systemImage: model.isPaused ? "pause.circle" : "eye",
                     tint: model.isPaused ? .orange : .green
                 )
-                StatusPill(
-                    title: "\(model.pendingCleanups.count) pending",
-                    systemImage: "tray",
-                    tint: model.pendingCleanups.isEmpty ? .secondary : .blue
-                )
-                StatusPill(
-                    title: model.activeAppName,
-                    systemImage: "cursorarrow.rays",
-                    tint: .indigo
-                )
+                if !model.pendingCleanups.isEmpty {
+                    StatusPill(
+                        title: "\(model.pendingCleanups.count) pending",
+                        systemImage: "tray",
+                        tint: .blue
+                    )
+                }
             }
         }
     }

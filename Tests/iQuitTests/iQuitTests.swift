@@ -11,6 +11,26 @@ import Testing
     #expect(decoded.launchAtLogin)
 }
 
+@Test func timeSettingsClampToSupportedRange() throws {
+    let settings = AppSettings(defaultVisibleWindowMinutes: 0, defaultIdleQuitMinutes: 120)
+    #expect(settings.defaultVisibleWindowMinutes == 1)
+    #expect(settings.defaultIdleQuitMinutes == 119)
+
+    let policy = AppPolicy(
+        bundleID: "com.example.mail",
+        displayName: "Mail",
+        visibleWindowMinutes: -5,
+        idleQuitMinutes: 999
+    )
+    #expect(policy.visibleWindowMinutes == 1)
+    #expect(policy.idleQuitMinutes == 119)
+
+    let legacyJSON = #"{"isEnabled":true,"defaultVisibleWindowMinutes":0,"defaultIdleQuitMinutes":120,"reviewBeforeCleanup":true,"reviewDelaySeconds":60,"policies":{}}"#
+    let decoded = try JSONDecoder().decode(AppSettings.self, from: Data(legacyJSON.utf8))
+    #expect(decoded.defaultVisibleWindowMinutes == 1)
+    #expect(decoded.defaultIdleQuitMinutes == 119)
+}
+
 @Test func appPolicyMigratesEnabledRulesToAskMode() throws {
     let legacyJSON = #"{"bundleID":"com.example.mail","displayName":"Mail","visibleWindowCleanupEnabled":true,"idleQuitEnabled":true,"visibleWindowMinutes":20,"idleQuitMinutes":60,"isProtected":false}"#
     let policy = try JSONDecoder().decode(AppPolicy.self, from: Data(legacyJSON.utf8))

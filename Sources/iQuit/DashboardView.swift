@@ -1,3 +1,4 @@
+import AppKit
 import iQuitCore
 import SwiftUI
 
@@ -321,17 +322,9 @@ private struct WindowRuleControl: View {
             .tint(tint)
             .help("Choose whether the window timer asks first or acts automatically.")
 
-            Stepper(value: $minutes, in: 1 ... 720, step: 5) {
-                Text(action == .off ? "Off" : "\(minutes)m")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(action == .off ? .secondary : tint)
-                    .frame(width: 54, alignment: .trailing)
-            }
-            .disabled(action == .off)
-            .opacity(action == .off ? 0.65 : 1)
-            .frame(width: 118)
+            MinuteComboBox(minutes: $minutes, disabledLabel: "Off", isEnabled: action != .off)
         }
-        .frame(width: 232)
+        .frame(width: 220)
     }
 
     private func windowActionTitle(_ action: AppPolicy.VisibleWindowAction) -> String {
@@ -382,17 +375,9 @@ private struct IdleQuitRuleControl: View {
             .tint(tint)
             .help("Choose whether the idle-quit timer asks first or quits automatically.")
 
-            Stepper(value: $minutes, in: 1 ... 720, step: 5) {
-                Text(action == .off ? "Never" : "\(minutes)m")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(action == .off ? .secondary : tint)
-                    .frame(width: 54, alignment: .trailing)
-            }
-            .disabled(action == .off)
-            .opacity(action == .off ? 0.65 : 1)
-            .frame(width: 118)
+            MinuteComboBox(minutes: $minutes, disabledLabel: "Never", isEnabled: action != .off)
         }
-        .frame(width: 232)
+        .frame(width: 220)
     }
 
     private func idleActionTitle(_ action: AppPolicy.IdleQuitAction) -> String {
@@ -417,13 +402,7 @@ private struct DefaultRuleControl: View {
                 .foregroundStyle(tint)
                 .frame(width: 132, alignment: .leading)
 
-            Stepper(value: $minutes, in: 1 ... 720, step: 5) {
-                Text("\(minutes)m")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(width: 42, alignment: .trailing)
-            }
-            .frame(width: 104)
+            MinuteComboBox(minutes: $minutes)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -465,24 +444,16 @@ struct PreferencesView: View {
             Text("Defaults")
                 .font(.headline)
 
-            Stepper(value: $model.settings.defaultVisibleWindowMinutes, in: 1 ... 720, step: 5) {
-                HStack {
-                    Text("Visible windows")
-                    Spacer()
-                    Text("\(model.settings.defaultVisibleWindowMinutes)m")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
+            HStack {
+                Text("Visible windows")
+                Spacer()
+                MinuteComboBox(minutes: $model.settings.defaultVisibleWindowMinutes)
             }
 
-            Stepper(value: $model.settings.defaultIdleQuitMinutes, in: 1 ... 720, step: 5) {
-                HStack {
-                    Text("Idle quit")
-                    Spacer()
-                    Text("\(model.settings.defaultIdleQuitMinutes)m")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
+            HStack {
+                Text("Idle quit")
+                Spacer()
+                MinuteComboBox(minutes: $model.settings.defaultIdleQuitMinutes)
             }
 
             Toggle(isOn: Binding(
@@ -497,6 +468,77 @@ struct PreferencesView: View {
                 }
             }
             .help("Open iQuit automatically after you sign in to your Mac.")
+        }
+    }
+}
+
+private struct MinuteComboBox: NSViewRepresentable {
+    @Binding var minutes: Int
+    var disabledLabel: String? = nil
+    var isEnabled: Bool = true
+
+    private let presets = [5, 10, 15, 20, 30, 45, 60, 90]
+    private let range = 1 ... 119
+
+    func makeNSView(context: Context) -> NSComboBox {
+        let comboBox = NSComboBox()
+        comboBox.usesDataSource = false
+        comboBox.addItems(withObjectValues: presets.map { "\($0)m" })
+        comboBox.completes = false
+        comboBox.isEditable = true
+        comboBox.numberOfVisibleItems = presets.count
+        comboBox.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        comboBox.controlSize = .small
+        comboBox.delegate = context.coordinator
+        comboBox.target = context.coordinator
+        comboBox.action = #selector(Coordinator.commit)
+        return comboBox
+    }
+
+    func updateNSView(_ comboBox: NSComboBox, context: Context) {
+        context.coordinator.parent = self
+        comboBox.isEnabled = isEnabled
+        comboBox.stringValue = isEnabled ? "\(clamped(minutes))m" : (disabledLabel ?? "\(clamped(minutes))m")
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    private func clamped(_ value: Int) -> Int {
+        min(range.upperBound, max(range.lowerBound, value))
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, NSComboBoxDelegate {
+        var parent: MinuteComboBox
+
+        init(parent: MinuteComboBox) {
+            self.parent = parent
+        }
+
+        @objc func commit(_ sender: NSComboBox) {
+            commitValue(from: sender)
+        }
+
+        func comboBoxSelectionDidChange(_ notification: Notification) {
+            guard let sender = notification.object as? NSComboBox else { return }
+            commitValue(from: sender)
+        }
+
+        func controlTextDidEndEditing(_ notification: Notification) {
+            guard let sender = notification.object as? NSComboBox else { return }
+            commitValue(from: sender)
+        }
+
+        private func commitValue(from comboBox: NSComboBox) {
+            let rawText = comboBox.stringValue
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "m", with: "", options: .caseInsensitive)
+            let rawValue = Int(rawText) ?? parent.minutes
+            let value = min(parent.range.upperBound, max(parent.range.lowerBound, rawValue))
+            parent.minutes = value
+            comboBox.stringValue = "\(value)m"
         }
     }
 }

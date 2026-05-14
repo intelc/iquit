@@ -1,6 +1,10 @@
 import Foundation
 
 public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
+    private static func validMinutes(_ minutes: Int) -> Int {
+        min(119, max(1, minutes))
+    }
+
     public var id: String {
         bundleID
     }
@@ -86,8 +90,8 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
         self.displayName = displayName
         self.visibleWindowAction = visibleWindowAction ?? (visibleWindowCleanupEnabled ? .ask : .off)
         self.idleQuitAction = idleQuitAction ?? (idleQuitEnabled ? .ask : .off)
-        self.visibleWindowMinutes = max(1, visibleWindowMinutes)
-        self.idleQuitMinutes = max(1, idleQuitMinutes)
+        self.visibleWindowMinutes = Self.validMinutes(visibleWindowMinutes)
+        self.idleQuitMinutes = Self.validMinutes(idleQuitMinutes)
         self.isProtected = isProtected
     }
 
@@ -123,8 +127,8 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
         }
         idleQuitAction = try container.decodeIfPresent(IdleQuitAction.self, forKey: .idleQuitAction)
             ?? (legacyVisibleWindowAction == .quit ? .quit : oldIdleQuitEnabled ? .ask : .off)
-        visibleWindowMinutes = try max(1, container.decodeIfPresent(Int.self, forKey: .visibleWindowMinutes) ?? oldIdleMinutes ?? 20)
-        idleQuitMinutes = try max(1, container.decodeIfPresent(Int.self, forKey: .idleQuitMinutes) ?? 60)
+        visibleWindowMinutes = try Self.validMinutes(container.decodeIfPresent(Int.self, forKey: .visibleWindowMinutes) ?? oldIdleMinutes ?? 20)
+        idleQuitMinutes = try Self.validMinutes(container.decodeIfPresent(Int.self, forKey: .idleQuitMinutes) ?? 60)
         isProtected = try container.decodeIfPresent(Bool.self, forKey: .isProtected) ?? false
     }
 

@@ -1,6 +1,10 @@
 import Foundation
 
 public struct AppSettings: Codable, Equatable, Sendable {
+    private static func validMinutes(_ minutes: Int) -> Int {
+        min(119, max(1, minutes))
+    }
+
     public var isEnabled: Bool
     public var defaultVisibleWindowMinutes: Int
     public var defaultIdleQuitMinutes: Int
@@ -19,8 +23,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         policies: [String: AppPolicy] = [:]
     ) {
         self.isEnabled = isEnabled
-        self.defaultVisibleWindowMinutes = max(1, defaultVisibleWindowMinutes)
-        self.defaultIdleQuitMinutes = max(1, defaultIdleQuitMinutes)
+        self.defaultVisibleWindowMinutes = Self.validMinutes(defaultVisibleWindowMinutes)
+        self.defaultIdleQuitMinutes = Self.validMinutes(defaultIdleQuitMinutes)
         self.launchAtLogin = launchAtLogin
         self.reviewBeforeCleanup = reviewBeforeCleanup
         self.reviewDelaySeconds = max(5, reviewDelaySeconds)
@@ -51,8 +55,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let oldDefaultIdleMinutes = try container.decodeIfPresent(Int.self, forKey: .defaultIdleMinutes)
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
-        defaultVisibleWindowMinutes = try max(1, container.decodeIfPresent(Int.self, forKey: .defaultVisibleWindowMinutes) ?? oldDefaultIdleMinutes ?? 20)
-        defaultIdleQuitMinutes = try max(1, container.decodeIfPresent(Int.self, forKey: .defaultIdleQuitMinutes) ?? 60)
+        defaultVisibleWindowMinutes = try Self.validMinutes(container.decodeIfPresent(Int.self, forKey: .defaultVisibleWindowMinutes) ?? oldDefaultIdleMinutes ?? 20)
+        defaultIdleQuitMinutes = try Self.validMinutes(container.decodeIfPresent(Int.self, forKey: .defaultIdleQuitMinutes) ?? 60)
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? true
         reviewBeforeCleanup = try container.decodeIfPresent(Bool.self, forKey: .reviewBeforeCleanup) ?? true
         reviewDelaySeconds = try max(5, container.decodeIfPresent(Int.self, forKey: .reviewDelaySeconds) ?? 60)

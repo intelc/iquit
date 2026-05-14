@@ -112,14 +112,14 @@ final class AppModel: NSObject, ObservableObject {
 
     func setVisibleWindowMinutes(_ minutes: Int, for app: RunningApp) {
         var policy = policy(for: app)
-        policy.visibleWindowMinutes = max(1, minutes)
+        policy.visibleWindowMinutes = validMinutes(minutes)
         policy.displayName = app.displayName
         settings.policies[app.bundleID] = policy
     }
 
     func setIdleQuitMinutes(_ minutes: Int, for app: RunningApp) {
         var policy = policy(for: app)
-        policy.idleQuitMinutes = max(1, minutes)
+        policy.idleQuitMinutes = validMinutes(minutes)
         policy.displayName = app.displayName
         settings.policies[app.bundleID] = policy
     }
@@ -476,6 +476,10 @@ final class AppModel: NSObject, ObservableObject {
         let seconds = max(0, Int(until.timeIntervalSince(Date())))
         if seconds < 60 { return "Cooling down \(seconds)s" }
         return "Cooling down \(Int(ceil(Double(seconds) / 60.0)))m"
+    }
+
+    private func validMinutes(_ minutes: Int) -> Int {
+        min(119, max(1, minutes))
     }
 
 }

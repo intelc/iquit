@@ -7,7 +7,7 @@ struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             header
 
             if !model.hasCompletedOnboarding {
@@ -26,28 +26,30 @@ struct MenuBarView: View {
                 pendingSection
             }
 
-            Divider()
+            VStack(alignment: .leading, spacing: 6) {
+                Text("NEXT UP")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.blue)
+                    .textCase(.uppercase)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Next Up")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                if model.upcomingCleanups.isEmpty {
-                    Text("No cleanup actions coming up.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 4)
-                } else {
-                    ForEach(model.upcomingCleanups) { upcoming in
-                        UpcomingCleanupRow(upcoming: upcoming)
-                            .environmentObject(model)
+                VStack(spacing: 1) {
+                    if model.upcomingCleanups.isEmpty {
+                        Text("Nothing close.")
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 4)
+                    } else {
+                        ForEach(model.upcomingCleanups) { upcoming in
+                            UpcomingCleanupRow(upcoming: upcoming)
+                                .environmentObject(model)
+                        }
                     }
                 }
+                .padding(.vertical, 2)
             }
-
-            Divider()
+            .padding(10)
+            .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             HStack {
                 Button {
@@ -64,9 +66,10 @@ struct MenuBarView: View {
                 }
                 .keyboardShortcut("q")
             }
+            .controlSize(.small)
         }
-        .padding(16)
-        .frame(width: 420)
+        .padding(12)
+        .frame(width: 330)
     }
 
     private func focusMainWindow() {
@@ -79,50 +82,49 @@ struct MenuBarView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("iQuit")
-                        .font(.title2.weight(.semibold))
-                    Text(model.lastEventMessage)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                Spacer()
-
-                Toggle("", isOn: $model.settings.isEnabled)
-                    .toggleStyle(.switch)
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("iQuit")
+                    .font(.title3.weight(.bold))
+                Text(model.lastEventMessage)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
-            if model.isPaused || !model.pendingCleanups.isEmpty {
-                HStack(spacing: 8) {
-                    if model.isPaused {
-                        StatusPill(title: "Paused", systemImage: "pause.circle", tint: .orange)
-                    }
-                    if !model.pendingCleanups.isEmpty {
-                        StatusPill(
-                            title: "\(model.pendingCleanups.count) pending",
-                            systemImage: "tray",
-                            tint: .blue
-                        )
-                    }
-                }
+            Spacer()
+
+            if model.isPaused {
+                Text("Paused")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+            } else if !model.pendingCleanups.isEmpty {
+                Text("\(model.pendingCleanups.count) pending")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.blue)
             }
+
+            Toggle("", isOn: $model.settings.isEnabled)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .controlSize(.small)
         }
+        .padding(10)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var pendingSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Review")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("REVIEW")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.blue)
 
             ForEach(model.pendingCleanups.prefix(3)) { cleanup in
                 PendingCleanupRow(cleanup: cleanup, compact: true)
             }
         }
+        .padding(10)
+        .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -131,12 +133,12 @@ private struct UpcomingCleanupRow: View {
     var upcoming: AppModel.UpcomingCleanup
 
     var body: some View {
-        HStack(spacing: 9) {
-            AppIconView(icon: upcoming.app.icon, size: 24)
+        HStack(spacing: 8) {
+            AppIconView(icon: upcoming.app.icon, size: 20)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(upcoming.app.displayName)
-                    .font(.callout.weight(.medium))
+                    .font(.callout.weight(.semibold))
                     .lineLimit(1)
                 Text(model.idleDescription(for: upcoming.app))
                     .font(.caption)
@@ -145,11 +147,11 @@ private struct UpcomingCleanupRow: View {
 
             Spacer()
 
-            Label(model.upcomingDescription(upcoming), systemImage: upcoming.trigger == .visibleWindow ? "macwindow" : "power")
-                .font(.caption.weight(.semibold))
+            Text(model.upcomingDescription(upcoming))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(upcoming.trigger == .visibleWindow ? .blue : .red)
                 .lineLimit(1)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 2)
     }
 }

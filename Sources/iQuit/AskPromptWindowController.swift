@@ -55,6 +55,10 @@ final class AskPromptWindowController {
         )
 
         let host = NSHostingController(rootView: view)
+        host.view.wantsLayer = true
+        host.view.layer?.cornerRadius = 14
+        host.view.layer?.cornerCurve = .continuous
+        host.view.layer?.masksToBounds = true
         let panel = panel ?? makePanel()
         panel.contentViewController = host
         panel.setContentSize(panelSize)
@@ -201,6 +205,7 @@ private struct AskPromptView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(.white.opacity(0.16))
             }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .frame(width: 500, height: 88)
     }
@@ -230,8 +235,7 @@ private struct PromptSplitActionButton: View {
                 Button(alwaysTitle, action: alwaysAction)
                     .help(alwaysHelp)
             } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
+                Text("")
                     .frame(width: 16, height: 18)
             }
             .menuStyle(.borderlessButton)

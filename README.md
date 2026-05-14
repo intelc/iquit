@@ -1,10 +1,16 @@
-<p align="center">
-  <img src="docs/images/app-logo-card.png" alt="iQuit app logo" width="260">
-</p>
-
-# iQuit
-
-iQuit is a tiny macOS menu bar app that hides or quits apps you are no longer using.
+<table>
+  <tr>
+    <td width="280">
+      <img src="docs/images/app-logo-card.png" alt="iQuit app logo" width="260">
+    </td>
+    <td>
+      <h1>iQuit</h1>
+      <p>iQuit is a tiny macOS menu bar app that hides or quits apps you are no longer using.</p>
+      <p><strong><a href="https://github.com/intelc/iquit/releases/latest/download/iQuit.dmg">Download iQuit.dmg</a></strong></p>
+      <p>Requires macOS 14 or newer. iQuit is a native Mac app and does not support Windows.</p>
+    </td>
+  </tr>
+</table>
 
 It keeps your desktop calmer by checking for apps that are just sitting around, then asks before it hides their windows or quits them. It is open source, native SwiftUI, and conservative by default.
 
@@ -12,13 +18,7 @@ It keeps your desktop calmer by checking for apps that are just sitting around, 
 
 ## Get iQuit
 
-Download the latest notarized DMG:
-
-**[Download iQuit.dmg](https://github.com/intelc/iquit/releases/latest/download/iQuit.dmg)**
-
-Then drag `iQuit.app` into Applications and launch it. The first launch explains the two cleanup systems and asks whether you want to enable optional Window Access.
-
-Requires macOS 14 or newer.
+Download the latest notarized DMG from the link above, then drag `iQuit.app` into Applications and launch it. The first launch explains the two cleanup systems and asks whether you want to enable optional Window Access.
 
 ## Why iQuit
 

@@ -9,7 +9,6 @@ struct iQuitApp: App {
         MenuBarExtra("iQuit", systemImage: model.isPaused ? "pause.circle" : "moon.zzz.fill") {
             MenuBarView()
                 .environmentObject(model)
-                .environmentObject(updater)
         }
         .menuBarExtraStyle(.window)
 

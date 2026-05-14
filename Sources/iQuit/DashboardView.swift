@@ -119,14 +119,21 @@ private struct HeaderBar: View {
 
                 Spacer(minLength: 12)
 
-                Button {
-                    updater.checkForUpdates()
-                } label: {
-                    Label("Check for Updates...", systemImage: "arrow.triangle.2.circlepath")
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Button {
+                        updater.checkForUpdates()
+                    } label: {
+                        Label("Check for Updates...", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(!updater.canCheckForUpdates)
+
+                    Text("v\(Self.appVersion)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(!updater.canCheckForUpdates)
 
                 if !model.pendingCleanups.isEmpty {
                     HeaderMetric(value: "\(model.pendingCleanups.count)", label: "review", systemImage: "tray")
@@ -157,6 +164,10 @@ private struct HeaderBar: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
         .background(.bar)
+    }
+
+    private static var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
     }
 }
 

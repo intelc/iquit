@@ -19,7 +19,7 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
         public var title: String {
             switch self {
             case .ask: "Ask"
-            case .hide: "Auto"
+            case .hide: "Always Hide"
             case .off: "Off"
             }
         }

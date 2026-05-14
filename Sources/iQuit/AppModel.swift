@@ -540,7 +540,7 @@ final class AppModel: NSObject, ObservableObject {
         guard app.hasVisibleWindows else { return nil }
         guard policy.visibleWindowAction != .off else { return nil }
         let remaining = max(0, Int(ceil(TimeInterval(policy.visibleWindowMinutes * 60) - idleSeconds)))
-        let action = policy.visibleWindowAction == .hide ? "Auto hide" : "Ask about windows"
+        let action = policy.visibleWindowAction == .hide ? "Always hide" : "Ask windows"
         return UpcomingCleanup(
             app: app,
             trigger: .visibleWindow,
@@ -557,7 +557,7 @@ final class AppModel: NSObject, ObservableObject {
         guard !app.hasVisibleWindows else { return nil }
         guard policy.idleQuitAction != .off else { return nil }
         let remaining = max(0, Int(ceil(TimeInterval(policy.idleQuitMinutes * 60) - idleSeconds)))
-        let action = policy.idleQuitAction == .quit ? "Auto quit" : "Ask to quit"
+        let action = policy.idleQuitAction == .quit ? "Always quit" : "Ask to quit"
         return UpcomingCleanup(
             app: app,
             trigger: .idleApp,

@@ -302,7 +302,7 @@ private struct WindowRuleControl: View {
                 Button {
                     action = .hide
                 } label: {
-                    Label("Auto", systemImage: "eye.slash")
+                    Label("Always Hide", systemImage: "eye.slash")
                 }
 
                 Divider()
@@ -330,7 +330,7 @@ private struct WindowRuleControl: View {
     private func windowActionTitle(_ action: AppPolicy.VisibleWindowAction) -> String {
         switch action {
         case .ask: "Ask"
-        case .hide: "Auto"
+        case .hide: "Always Hide"
         case .off: "Off"
         }
     }
@@ -383,7 +383,7 @@ private struct IdleQuitRuleControl: View {
     private func idleActionTitle(_ action: AppPolicy.IdleQuitAction) -> String {
         switch action {
         case .ask: "Ask"
-        case .quit: "Auto Quit"
+        case .quit: "Always Quit"
         case .off: "Never"
         }
     }

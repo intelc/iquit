@@ -20,6 +20,7 @@ final class AskPromptWindowController {
     private let onAlwaysQuit: (PendingCleanup) -> Void
     private let onIgnore: (PendingCleanup) -> Void
     private let onSkip: (PendingCleanup) -> Void
+    private let onOpen: (PendingCleanup) -> Void
     private let onTimeout: (PendingCleanup) -> Void
 
     var isShowing: Bool {
@@ -33,6 +34,7 @@ final class AskPromptWindowController {
         onAlwaysQuit: @escaping (PendingCleanup) -> Void,
         onIgnore: @escaping (PendingCleanup) -> Void,
         onSkip: @escaping (PendingCleanup) -> Void,
+        onOpen: @escaping (PendingCleanup) -> Void,
         onTimeout: @escaping (PendingCleanup) -> Void
     ) {
         self.onHide = onHide
@@ -41,22 +43,25 @@ final class AskPromptWindowController {
         self.onAlwaysQuit = onAlwaysQuit
         self.onIgnore = onIgnore
         self.onSkip = onSkip
+        self.onOpen = onOpen
         self.onTimeout = onTimeout
     }
 
-    func show(cleanup: PendingCleanup, icon: NSImage?) {
+    func show(cleanup: PendingCleanup, icon: NSImage?, idleSince: Date?) {
         timeoutTask?.cancel()
         currentCleanup = cleanup
 
         let view = AskPromptView(
             cleanup: cleanup,
             icon: icon,
+            idleSince: idleSince,
             onHide: { [weak self] in self?.onHide(cleanup) },
             onQuit: { [weak self] in self?.onQuit(cleanup) },
             onAlwaysHide: { [weak self] in self?.onAlwaysHide(cleanup) },
             onAlwaysQuit: { [weak self] in self?.onAlwaysQuit(cleanup) },
             onIgnore: { [weak self] in self?.onIgnore(cleanup) },
-            onSkip: { [weak self] in self?.onSkip(cleanup) }
+            onSkip: { [weak self] in self?.onSkip(cleanup) },
+            onOpen: { [weak self] in self?.onOpen(cleanup) }
         )
 
         let host = NSHostingController(rootView: view)
@@ -129,12 +134,14 @@ private struct AskPromptView: View {
 
     var cleanup: PendingCleanup
     var icon: NSImage?
+    var idleSince: Date?
     var onHide: () -> Void
     var onQuit: () -> Void
     var onAlwaysHide: () -> Void
     var onAlwaysQuit: () -> Void
     var onIgnore: () -> Void
     var onSkip: () -> Void
+    var onOpen: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
@@ -144,10 +151,10 @@ private struct AskPromptView: View {
 
             VStack(spacing: 0) {
                 HStack(spacing: 11) {
-                    AppIconView(icon: icon, size: 34)
+                    PromptAppIconButton(icon: icon, action: onOpen)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("\(cleanup.displayName) \(cleanup.trigger.titleSuffix)")
+                        Text(title(at: context.date))
                             .font(.headline)
                             .lineLimit(1)
                         Text(cleanup.trigger.subtitle)
@@ -234,6 +241,59 @@ private struct AskPromptView: View {
         }
         .frame(width: Self.cardWidth, height: Self.cardHeight)
         .padding(7)
+    }
+
+    private func title(at date: Date) -> String {
+        guard let idleSince else {
+            return "\(cleanup.displayName) \(cleanup.trigger.titleSuffix)"
+        }
+
+        let idleText = Self.idleDurationText(from: idleSince, to: date)
+        return "\(cleanup.displayName) \(cleanup.trigger.titleSuffix) for \(idleText)"
+    }
+
+    private static func idleDurationText(from startDate: Date, to endDate: Date) -> String {
+        let seconds = max(0, Int(endDate.timeIntervalSince(startDate)))
+        if seconds < 60 { return "0 mins" }
+
+        let minutes = seconds / 60
+        if minutes < 60 { return "\(minutes) \(minutes == 1 ? "min" : "mins")" }
+
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+        if remainingMinutes == 0 {
+            return "\(hours) hr"
+        }
+        return "\(hours) hr \(remainingMinutes) \(remainingMinutes == 1 ? "min" : "mins")"
+    }
+}
+
+private struct PromptAppIconButton: View {
+    var icon: NSImage?
+    var action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                AppIconView(icon: icon, size: 34)
+                    .saturation(isHovering ? 0 : 1)
+                    .brightness(isHovering ? -0.2 : 0)
+
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(.black.opacity(isHovering ? 0.54 : 0))
+
+                Text("Open")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .opacity(isHovering ? 1 : 0)
+            }
+            .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.plain)
+        .help("Bring this app to the foreground.")
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
     }
 }
 

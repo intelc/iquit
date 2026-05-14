@@ -75,6 +75,9 @@ final class AppModel: NSObject, ObservableObject {
             onSkip: { [weak self] cleanup in
                 self?.skip(cleanup)
             },
+            onOpen: { [weak self] cleanup in
+                self?.open(cleanup)
+            },
             onTimeout: { [weak self] cleanup in
                 self?.timeout(cleanup)
             }
@@ -292,6 +295,18 @@ final class AppModel: NSObject, ObservableObject {
         startCooldown(bundleID: cleanup.bundleID)
         lastEventMessage = "\(cleanup.displayName) is cooling down."
         presentNextPrompt()
+    }
+
+    func open(_ cleanup: PendingCleanup) {
+        guard let app = workspace.runningApplications.first(where: { $0.bundleIdentifier == cleanup.bundleID }) else {
+            lastEventMessage = "Could not find \(cleanup.displayName)."
+            return
+        }
+
+        let succeeded = app.activate(options: [.activateAllWindows])
+        lastEventMessage = succeeded
+            ? "Opened \(cleanup.displayName)."
+            : "Could not open \(cleanup.displayName)."
     }
 
     func idleDescription(for app: RunningApp) -> String {
@@ -557,8 +572,8 @@ final class AppModel: NSObject, ObservableObject {
         cleanup.dueAt = now.addingTimeInterval(promptDuration)
         pendingCleanups[index] = cleanup
 
-        let icon = runningApps.first { $0.bundleID == cleanup.bundleID }?.icon
-        askPromptController?.show(cleanup: cleanup, icon: icon)
+        let app = runningApps.first { $0.bundleID == cleanup.bundleID }
+        askPromptController?.show(cleanup: cleanup, icon: app?.icon, idleSince: app?.lastActiveAt)
     }
 
     private func perform(

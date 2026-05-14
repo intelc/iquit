@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- Added live idle duration text to cleanup prompts.
+- Added a hoverable Open affordance on prompt app icons to bring the app forward without dismissing the prompt.
+
 ## 0.1.4
 
 - Polished the floating prompt into a tighter two-row rounded card.

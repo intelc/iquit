@@ -54,13 +54,13 @@ Window Access is optional. When granted, iQuit can minimize individual windows. 
 
 ## Screenshots
 
+The menu bar popover shows the next apps likely to need attention, without listing everything on your Mac.
+
+![iQuit menu bar popover](docs/images/menu-bar.png)
+
 The dashboard keeps the two cleanup systems separate: blue for visible-window cleanup, red for idle quit.
 
 ![iQuit dashboard](docs/images/dashboard.png)
-
-First launch explains the defaults, protected apps, and optional Accessibility access.
-
-![iQuit onboarding](docs/images/onboarding.png)
 
 ## Features
 

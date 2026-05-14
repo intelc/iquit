@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Replaced the hand-drawn icon generator with a generated source icon used for Finder, DMG, and system display.
+- Added a rounded README logo card that uses the same app icon artwork.
+
 ## 0.1.1
 
 - Added a generated minimal app icon for Finder, DMG, and system display.

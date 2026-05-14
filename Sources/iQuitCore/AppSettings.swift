@@ -9,8 +9,6 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var defaultVisibleWindowMinutes: Int
     public var defaultIdleQuitMinutes: Int
     public var launchAtLogin: Bool
-    public var reviewBeforeCleanup: Bool
-    public var reviewDelaySeconds: Int
     public var policies: [String: AppPolicy]
 
     public init(
@@ -18,16 +16,12 @@ public struct AppSettings: Codable, Equatable, Sendable {
         defaultVisibleWindowMinutes: Int = 20,
         defaultIdleQuitMinutes: Int = 60,
         launchAtLogin: Bool = true,
-        reviewBeforeCleanup: Bool = true,
-        reviewDelaySeconds: Int = 60,
         policies: [String: AppPolicy] = [:]
     ) {
         self.isEnabled = isEnabled
         self.defaultVisibleWindowMinutes = Self.validMinutes(defaultVisibleWindowMinutes)
         self.defaultIdleQuitMinutes = Self.validMinutes(defaultIdleQuitMinutes)
         self.launchAtLogin = launchAtLogin
-        self.reviewBeforeCleanup = reviewBeforeCleanup
-        self.reviewDelaySeconds = max(5, reviewDelaySeconds)
         self.policies = policies
     }
 
@@ -46,8 +40,6 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case defaultVisibleWindowMinutes
         case defaultIdleQuitMinutes
         case launchAtLogin
-        case reviewBeforeCleanup
-        case reviewDelaySeconds
         case policies
     }
 
@@ -58,8 +50,6 @@ public struct AppSettings: Codable, Equatable, Sendable {
         defaultVisibleWindowMinutes = try Self.validMinutes(container.decodeIfPresent(Int.self, forKey: .defaultVisibleWindowMinutes) ?? oldDefaultIdleMinutes ?? 20)
         defaultIdleQuitMinutes = try Self.validMinutes(container.decodeIfPresent(Int.self, forKey: .defaultIdleQuitMinutes) ?? 60)
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? true
-        reviewBeforeCleanup = try container.decodeIfPresent(Bool.self, forKey: .reviewBeforeCleanup) ?? true
-        reviewDelaySeconds = try max(5, container.decodeIfPresent(Int.self, forKey: .reviewDelaySeconds) ?? 60)
         policies = try container.decodeIfPresent([String: AppPolicy].self, forKey: .policies) ?? [:]
     }
 
@@ -69,8 +59,6 @@ public struct AppSettings: Codable, Equatable, Sendable {
         try container.encode(defaultVisibleWindowMinutes, forKey: .defaultVisibleWindowMinutes)
         try container.encode(defaultIdleQuitMinutes, forKey: .defaultIdleQuitMinutes)
         try container.encode(launchAtLogin, forKey: .launchAtLogin)
-        try container.encode(reviewBeforeCleanup, forKey: .reviewBeforeCleanup)
-        try container.encode(reviewDelaySeconds, forKey: .reviewDelaySeconds)
         try container.encode(policies, forKey: .policies)
     }
 }

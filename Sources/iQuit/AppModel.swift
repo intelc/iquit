@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import Foundation
 import iQuitCore
 
@@ -89,10 +88,6 @@ final class AppModel: NSObject, ObservableObject {
         sortedRunningApps.filter { !policy(for: $0).isProtected }
     }
 
-    var activeAppName: String {
-        runningApps.first(where: \.isActive)?.displayName ?? "No active app"
-    }
-
     var upcomingCleanups: [UpcomingCleanup] {
         let now = Date()
         return runningApps.compactMap { app in
@@ -136,28 +131,12 @@ final class AppModel: NSObject, ObservableObject {
         settings.policy(for: app.bundleID, displayName: app.displayName)
     }
 
-    func setVisibleWindowCleanupEnabled(_ isEnabled: Bool, for app: RunningApp) {
-        var policy = policy(for: app)
-        policy.visibleWindowCleanupEnabled = isEnabled
-        policy.displayName = app.displayName
-        settings.policies[app.bundleID] = policy
-        lastEventMessage = isEnabled ? "\(app.displayName) window cleanup is on." : "\(app.displayName) window cleanup is off."
-    }
-
     func setVisibleWindowAction(_ action: AppPolicy.VisibleWindowAction, for app: RunningApp) {
         var policy = policy(for: app)
         policy.visibleWindowAction = action
         policy.displayName = app.displayName
         settings.policies[app.bundleID] = policy
         lastEventMessage = "\(app.displayName) window cleanup: \(action.title)."
-    }
-
-    func setIdleQuitEnabled(_ isEnabled: Bool, for app: RunningApp) {
-        var policy = policy(for: app)
-        policy.idleQuitEnabled = isEnabled
-        policy.displayName = app.displayName
-        settings.policies[app.bundleID] = policy
-        lastEventMessage = isEnabled ? "\(app.displayName) idle quit is on." : "\(app.displayName) idle quit is off."
     }
 
     func setIdleQuitAction(_ action: AppPolicy.IdleQuitAction, for app: RunningApp) {

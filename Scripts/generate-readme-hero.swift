@@ -275,7 +275,7 @@ func drawFrame(_ frameIndex: Int) throws -> CGImage {
 
     fillRounded(CGRect(x: 0, y: height - 34, width: width, height: 34), radius: 0, color: color(23, 83, 135, 0.60))
     drawText("iQuit", at: CGPoint(x: 28, y: height - 24), size: 13, weight: .bold, color: color(243, 248, 255))
-    drawText("Watching quietly", at: CGPoint(x: 76, y: height - 24), size: 13, weight: .medium, color: color(214, 230, 245))
+    drawText("Keeping things tidy", at: CGPoint(x: 76, y: height - 24), size: 13, weight: .medium, color: color(214, 230, 245))
     drawText("Wed 5:30 PM", at: CGPoint(x: width - 118, y: height - 24), size: 13, weight: .semibold, color: color(243, 248, 255))
 
     for window in windows {

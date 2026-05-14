@@ -23,7 +23,10 @@ fi
 "$lsregister" -f "$bundle_path" 2>/dev/null || true
 
 echo "Stopping existing iQuit bundle processes..."
-pkill -f "/${app_name}/Contents/MacOS/iQuit" 2>/dev/null || true
+while read -r pid; do
+  [[ -z "$pid" ]] && continue
+  kill "$pid" 2>/dev/null || true
+done < <(pgrep -f "${bundle_path}/Contents/MacOS/iQuit" || true)
 sleep 0.5
 
 echo "Launching signed bundle:"

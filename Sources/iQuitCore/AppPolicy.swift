@@ -49,47 +49,19 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
     public var idleQuitMinutes: Int
     public var isProtected: Bool
 
-    public var visibleWindowCleanupEnabled: Bool {
-        get { visibleWindowAction != .off }
-        set {
-            if newValue {
-                if visibleWindowAction == .off {
-                    visibleWindowAction = .ask
-                }
-            } else {
-                visibleWindowAction = .off
-            }
-        }
-    }
-
-    public var idleQuitEnabled: Bool {
-        get { idleQuitAction != .off }
-        set {
-            if newValue {
-                if idleQuitAction == .off {
-                    idleQuitAction = .ask
-                }
-            } else {
-                idleQuitAction = .off
-            }
-        }
-    }
-
     public init(
         bundleID: String,
         displayName: String,
-        visibleWindowAction: VisibleWindowAction? = nil,
-        idleQuitAction: IdleQuitAction? = nil,
-        visibleWindowCleanupEnabled: Bool = true,
-        idleQuitEnabled: Bool = true,
+        visibleWindowAction: VisibleWindowAction = .ask,
+        idleQuitAction: IdleQuitAction = .ask,
         visibleWindowMinutes: Int = 20,
         idleQuitMinutes: Int = 60,
         isProtected: Bool = false
     ) {
         self.bundleID = bundleID
         self.displayName = displayName
-        self.visibleWindowAction = visibleWindowAction ?? (visibleWindowCleanupEnabled ? .ask : .off)
-        self.idleQuitAction = idleQuitAction ?? (idleQuitEnabled ? .ask : .off)
+        self.visibleWindowAction = visibleWindowAction
+        self.idleQuitAction = idleQuitAction
         self.visibleWindowMinutes = Self.validMinutes(visibleWindowMinutes)
         self.idleQuitMinutes = Self.validMinutes(idleQuitMinutes)
         self.isProtected = isProtected
@@ -138,8 +110,6 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
         try container.encode(displayName, forKey: .displayName)
         try container.encode(visibleWindowAction, forKey: .visibleWindowAction)
         try container.encode(idleQuitAction, forKey: .idleQuitAction)
-        try container.encode(visibleWindowCleanupEnabled, forKey: .visibleWindowCleanupEnabled)
-        try container.encode(idleQuitEnabled, forKey: .idleQuitEnabled)
         try container.encode(visibleWindowMinutes, forKey: .visibleWindowMinutes)
         try container.encode(idleQuitMinutes, forKey: .idleQuitMinutes)
         try container.encode(isProtected, forKey: .isProtected)

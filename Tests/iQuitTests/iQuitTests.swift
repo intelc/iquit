@@ -39,6 +39,20 @@ import Testing
     #expect(policy.idleQuitAction == .ask)
 }
 
+@Test func encodedModelsOmitLegacyFields() throws {
+    let settings = AppSettings()
+    let settingsData = try JSONEncoder().encode(settings)
+    let settingsJSON = String(decoding: settingsData, as: UTF8.self)
+    #expect(!settingsJSON.contains("reviewBeforeCleanup"))
+    #expect(!settingsJSON.contains("reviewDelaySeconds"))
+
+    let policy = AppPolicy(bundleID: "com.example.mail", displayName: "Mail")
+    let policyData = try JSONEncoder().encode(policy)
+    let policyJSON = String(decoding: policyData, as: UTF8.self)
+    #expect(!policyJSON.contains("visibleWindowCleanupEnabled"))
+    #expect(!policyJSON.contains("idleQuitEnabled"))
+}
+
 @Test func appPolicyMigratesLegacyWindowAutoQuitToIdleAutoQuit() throws {
     let legacyJSON = #"{"bundleID":"com.example.mail","displayName":"Mail","visibleWindowAction":"quit","visibleWindowMinutes":20,"idleQuitMinutes":60,"isProtected":false}"#
     let policy = try JSONDecoder().decode(AppPolicy.self, from: Data(legacyJSON.utf8))

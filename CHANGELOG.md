@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3
+
+- Refreshed README screenshots for the current menu, dashboard, and prompt UI.
+- Reduced stale settings/dead code while keeping migrations for older saved settings.
+- Improved dev launch safety around mounted DMGs and TCC registration.
+- Added adaptive cleanup evaluation to reduce unnecessary polling.
+
 ## 0.1.2
 
 - Replaced the hand-drawn icon generator with a generated source icon used for Finder, DMG, and system display.

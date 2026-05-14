@@ -4,13 +4,15 @@ import SwiftUI
 
 @MainActor
 final class AskPromptWindowController {
-    private let panelSize = NSSize(width: 430, height: 88)
+    private let panelSize = NSSize(width: 500, height: 88)
     private var panel: NSPanel?
     private var timeoutTask: Task<Void, Never>?
     private var currentCleanup: PendingCleanup?
 
     private let onHide: (PendingCleanup) -> Void
     private let onQuit: (PendingCleanup) -> Void
+    private let onAlwaysHide: (PendingCleanup) -> Void
+    private let onAlwaysQuit: (PendingCleanup) -> Void
     private let onIgnore: (PendingCleanup) -> Void
     private let onSkip: (PendingCleanup) -> Void
     private let onTimeout: (PendingCleanup) -> Void
@@ -22,12 +24,16 @@ final class AskPromptWindowController {
     init(
         onHide: @escaping (PendingCleanup) -> Void,
         onQuit: @escaping (PendingCleanup) -> Void,
+        onAlwaysHide: @escaping (PendingCleanup) -> Void,
+        onAlwaysQuit: @escaping (PendingCleanup) -> Void,
         onIgnore: @escaping (PendingCleanup) -> Void,
         onSkip: @escaping (PendingCleanup) -> Void,
         onTimeout: @escaping (PendingCleanup) -> Void
     ) {
         self.onHide = onHide
         self.onQuit = onQuit
+        self.onAlwaysHide = onAlwaysHide
+        self.onAlwaysQuit = onAlwaysQuit
         self.onIgnore = onIgnore
         self.onSkip = onSkip
         self.onTimeout = onTimeout
@@ -42,6 +48,8 @@ final class AskPromptWindowController {
             icon: icon,
             onHide: { [weak self] in self?.onHide(cleanup) },
             onQuit: { [weak self] in self?.onQuit(cleanup) },
+            onAlwaysHide: { [weak self] in self?.onAlwaysHide(cleanup) },
+            onAlwaysQuit: { [weak self] in self?.onAlwaysQuit(cleanup) },
             onIgnore: { [weak self] in self?.onIgnore(cleanup) },
             onSkip: { [weak self] in self?.onSkip(cleanup) }
         )
@@ -108,6 +116,8 @@ private struct AskPromptView: View {
     var icon: NSImage?
     var onHide: () -> Void
     var onQuit: () -> Void
+    var onAlwaysHide: () -> Void
+    var onAlwaysQuit: () -> Void
     var onIgnore: () -> Void
     var onSkip: () -> Void
 
@@ -135,22 +145,28 @@ private struct AskPromptView: View {
                     Spacer(minLength: 4)
 
                     if cleanup.trigger == .visibleWindow {
-                        Button(action: onHide) {
-                            Label("Hide", systemImage: "eye.slash")
-                        }
-                        .buttonStyle(PromptActionButtonStyle(tint: .blue))
-                        .controlSize(.small)
-                        .fixedSize()
-                        .help("Put this app's windows away. The app keeps running.")
+                        PromptSplitActionButton(
+                            title: "Hide",
+                            systemImage: "eye.slash",
+                            alwaysTitle: "Always Hide",
+                            tint: .blue,
+                            action: onHide,
+                            alwaysAction: onAlwaysHide,
+                            help: "Put this app's windows away. The app keeps running.",
+                            alwaysHelp: "From now on, hide this app automatically when its windows are idle."
+                        )
                     }
 
-                    Button(role: .destructive, action: onQuit) {
-                        Label("Quit", systemImage: "power")
-                    }
-                    .buttonStyle(PromptActionButtonStyle(tint: .red))
-                    .controlSize(.small)
-                    .fixedSize()
-                    .help("Ask this app to close. It can still warn you about unsaved work.")
+                    PromptSplitActionButton(
+                        title: "Quit",
+                        systemImage: "power",
+                        alwaysTitle: "Always Quit",
+                        tint: .red,
+                        action: onQuit,
+                        alwaysAction: onAlwaysQuit,
+                        help: "Ask this app to close. It can still warn you about unsaved work.",
+                        alwaysHelp: "From now on, quit this app automatically when this rule fires."
+                    )
 
                     Button(action: onIgnore) {
                         Image(systemName: "hand.raised")
@@ -186,7 +202,43 @@ private struct AskPromptView: View {
                     .strokeBorder(.white.opacity(0.16))
             }
         }
-        .frame(width: 430, height: 88)
+        .frame(width: 500, height: 88)
+    }
+}
+
+private struct PromptSplitActionButton: View {
+    var title: String
+    var systemImage: String
+    var alwaysTitle: String
+    var tint: Color
+    var action: () -> Void
+    var alwaysAction: () -> Void
+    var help: String
+    var alwaysHelp: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Button(action: action) {
+                Label(title, systemImage: systemImage)
+            }
+            .buttonStyle(PromptActionButtonStyle(tint: tint))
+            .controlSize(.small)
+            .fixedSize()
+            .help(help)
+
+            Menu {
+                Button(alwaysTitle, action: alwaysAction)
+                    .help(alwaysHelp)
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .bold))
+                    .frame(width: 16, height: 18)
+            }
+            .menuStyle(.borderlessButton)
+            .buttonStyle(PromptChevronButtonStyle(tint: tint))
+            .help(alwaysHelp)
+        }
+        .fixedSize()
     }
 }
 
@@ -219,6 +271,40 @@ private struct PromptActionButtonBody: View {
             }
             .shadow(color: tint.opacity(isHovering ? 0.36 : 0), radius: isHovering ? 9 : 0, y: isHovering ? 3 : 0)
             .scaleEffect(configuration.isPressed ? 0.98 : (isHovering ? 1.035 : 1))
+            .animation(.easeOut(duration: 0.14), value: isHovering)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+            .onHover { isHovering = $0 }
+    }
+}
+
+private struct PromptChevronButtonStyle: ButtonStyle {
+    var tint: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        PromptChevronButtonBody(configuration: configuration, tint: tint)
+    }
+}
+
+private struct PromptChevronButtonBody: View {
+    let configuration: ButtonStyle.Configuration
+    var tint: Color
+    @State private var isHovering = false
+
+    var body: some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 7)
+            .background(
+                tint.opacity(configuration.isPressed ? 0.62 : (isHovering ? 0.88 : 0.72)),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(.white.opacity(isHovering ? 0.24 : 0), lineWidth: 1)
+            }
+            .shadow(color: tint.opacity(isHovering ? 0.28 : 0), radius: isHovering ? 7 : 0, y: isHovering ? 3 : 0)
+            .scaleEffect(configuration.isPressed ? 0.96 : (isHovering ? 1.04 : 1))
             .animation(.easeOut(duration: 0.14), value: isHovering)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
             .onHover { isHovering = $0 }

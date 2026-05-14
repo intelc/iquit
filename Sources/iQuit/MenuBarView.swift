@@ -148,11 +148,23 @@ private struct CompactAppRow: View {
 
     private var ruleSummary: String {
         let policy = model.policy(for: app)
-        return switch (policy.visibleWindowCleanupEnabled, policy.idleQuitEnabled) {
-        case (true, true): "Win + Quit"
-        case (true, false): "Windows"
-        case (false, true): "Quit"
-        case (false, false): "Off"
+        let windowText = switch policy.visibleWindowAction {
+        case .ask: "Win Ask"
+        case .hide: "Win Hide"
+        case .quit: "Win Quit"
+        case .off: ""
         }
+        let quitText = switch policy.idleQuitAction {
+        case .ask: "Quit Ask"
+        case .quit: "Auto Quit"
+        case .off: ""
+        }
+        return [windowText, quitText].filter { !$0.isEmpty }.joined(separator: " + ").nilIfEmpty ?? "Off"
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

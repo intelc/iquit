@@ -236,12 +236,12 @@ private struct AppPolicyRow: View {
 
             Spacer(minLength: 8)
 
-            RuleControl(
+            WindowRuleControl(
                 title: "Windows",
                 systemImage: app.hasVisibleWindows ? "macwindow" : "macwindow.badge.plus",
-                isOn: Binding(
-                    get: { policy.visibleWindowCleanupEnabled },
-                    set: { model.setVisibleWindowCleanupEnabled($0, for: app) }
+                action: Binding(
+                    get: { policy.visibleWindowAction },
+                    set: { model.setVisibleWindowAction($0, for: app) }
                 ),
                 tint: .blue,
                 minutes: Binding(
@@ -250,15 +250,14 @@ private struct AppPolicyRow: View {
                 )
             )
 
-            RuleControl(
+            IdleQuitRuleControl(
                 title: "Quit",
                 systemImage: "power",
-                isOn: Binding(
-                    get: { policy.idleQuitEnabled },
-                    set: { model.setIdleQuitEnabled($0, for: app) }
+                action: Binding(
+                    get: { policy.idleQuitAction },
+                    set: { model.setIdleQuitAction($0, for: app) }
                 ),
                 tint: .red,
-                offText: "Never",
                 minutes: Binding(
                     get: { policy.idleQuitMinutes },
                     set: { model.setIdleQuitMinutes($0, for: app) }
@@ -292,36 +291,132 @@ private struct AppPolicyRow: View {
     }
 }
 
-private struct RuleControl: View {
+private struct WindowRuleControl: View {
     var title: String
     var systemImage: String
-    @Binding var isOn: Bool
+    @Binding var action: CleanupAction
     var tint: Color
-    var offText: String?
     @Binding var minutes: Int
 
     var body: some View {
         HStack(spacing: 8) {
-            Toggle(isOn: $isOn) {
-                Label(title, systemImage: systemImage)
-                    .labelStyle(.titleAndIcon)
+            Menu {
+                Button {
+                    action = .ask
+                } label: {
+                    Label("Ask", systemImage: "questionmark.bubble")
+                }
+
+                Button {
+                    action = .hide
+                } label: {
+                    Label("Always Hide", systemImage: "eye.slash")
+                }
+
+                Button(role: .destructive) {
+                    action = .quit
+                } label: {
+                    Label("Always Quit", systemImage: "power")
+                }
+
+                Divider()
+
+                Button {
+                    action = .off
+                } label: {
+                    Label("Off", systemImage: "pause.circle")
+                }
+            } label: {
+                Label(windowActionTitle(action), systemImage: systemImage)
+                    .lineLimit(1)
+                    .frame(width: 106, alignment: .leading)
             }
-            .toggleStyle(.button)
+            .menuStyle(.borderlessButton)
             .controlSize(.small)
             .tint(tint)
-            .frame(width: 96)
+            .help("Choose whether the window timer asks first or acts automatically.")
 
             Stepper(value: $minutes, in: 1 ... 720, step: 5) {
-                Text(isOn ? "\(minutes)m" : (offText ?? "Off"))
+                Text(action == .off ? "Off" : "\(minutes)m")
                     .font(.callout.monospacedDigit())
-                    .foregroundStyle(isOn ? tint : .secondary)
+                    .foregroundStyle(action == .off ? .secondary : tint)
                     .frame(width: 54, alignment: .trailing)
             }
-            .disabled(!isOn)
-            .opacity(isOn ? 1 : 0.65)
+            .disabled(action == .off)
+            .opacity(action == .off ? 0.65 : 1)
             .frame(width: 118)
         }
-        .frame(width: 222)
+        .frame(width: 232)
+    }
+
+    private func windowActionTitle(_ action: CleanupAction) -> String {
+        switch action {
+        case .ask: "Ask"
+        case .hide: "Auto Hide"
+        case .quit: "Auto Quit"
+        case .off: "Off"
+        }
+    }
+}
+
+private struct IdleQuitRuleControl: View {
+    var title: String
+    var systemImage: String
+    @Binding var action: AppPolicy.IdleQuitAction
+    var tint: Color
+    @Binding var minutes: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Menu {
+                Button {
+                    action = .ask
+                } label: {
+                    Label("Ask", systemImage: "questionmark.bubble")
+                }
+
+                Button(role: .destructive) {
+                    action = .quit
+                } label: {
+                    Label("Always Quit", systemImage: "power")
+                }
+
+                Divider()
+
+                Button {
+                    action = .off
+                } label: {
+                    Label("Never", systemImage: "pause.circle")
+                }
+            } label: {
+                Label(idleActionTitle(action), systemImage: systemImage)
+                    .lineLimit(1)
+                    .frame(width: 106, alignment: .leading)
+            }
+            .menuStyle(.borderlessButton)
+            .controlSize(.small)
+            .tint(tint)
+            .help("Choose whether the idle-quit timer asks first or quits automatically.")
+
+            Stepper(value: $minutes, in: 1 ... 720, step: 5) {
+                Text(action == .off ? "Never" : "\(minutes)m")
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(action == .off ? .secondary : tint)
+                    .frame(width: 54, alignment: .trailing)
+            }
+            .disabled(action == .off)
+            .opacity(action == .off ? 0.65 : 1)
+            .frame(width: 118)
+        }
+        .frame(width: 232)
+    }
+
+    private func idleActionTitle(_ action: AppPolicy.IdleQuitAction) -> String {
+        switch action {
+        case .ask: "Ask"
+        case .quit: "Auto Quit"
+        case .off: "Never"
+        }
     }
 }
 

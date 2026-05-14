@@ -37,6 +37,12 @@ final class AppModel: NSObject, ObservableObject {
             onQuit: { [weak self] cleanup in
                 self?.approve(cleanup, as: .quit)
             },
+            onAlwaysHide: { [weak self] cleanup in
+                self?.approveAlways(cleanup, as: .hide)
+            },
+            onAlwaysQuit: { [weak self] cleanup in
+                self?.approveAlways(cleanup, as: .quit)
+            },
             onIgnore: { [weak self] cleanup in
                 self?.ignoreApp(cleanup)
             },
@@ -80,12 +86,28 @@ final class AppModel: NSObject, ObservableObject {
         lastEventMessage = isEnabled ? "\(app.displayName) window cleanup is on." : "\(app.displayName) window cleanup is off."
     }
 
+    func setVisibleWindowAction(_ action: CleanupAction, for app: RunningApp) {
+        var policy = policy(for: app)
+        policy.visibleWindowAction = action
+        policy.displayName = app.displayName
+        settings.policies[app.bundleID] = policy
+        lastEventMessage = "\(app.displayName) window cleanup: \(windowActionTitle(action))."
+    }
+
     func setIdleQuitEnabled(_ isEnabled: Bool, for app: RunningApp) {
         var policy = policy(for: app)
         policy.idleQuitEnabled = isEnabled
         policy.displayName = app.displayName
         settings.policies[app.bundleID] = policy
         lastEventMessage = isEnabled ? "\(app.displayName) idle quit is on." : "\(app.displayName) idle quit is off."
+    }
+
+    func setIdleQuitAction(_ action: AppPolicy.IdleQuitAction, for app: RunningApp) {
+        var policy = policy(for: app)
+        policy.idleQuitAction = action
+        policy.displayName = app.displayName
+        settings.policies[app.bundleID] = policy
+        lastEventMessage = "\(app.displayName) idle quit: \(action.title)."
     }
 
     func setVisibleWindowMinutes(_ minutes: Int, for app: RunningApp) {
@@ -163,6 +185,25 @@ final class AppModel: NSObject, ObservableObject {
             preferWindowMinimize: selectedAction == .hide && cleanup.trigger == .visibleWindow
         )
         presentNextPrompt()
+    }
+
+    func approveAlways(_ cleanup: PendingCleanup, as action: CleanupAction) {
+        guard action == .hide || action == .quit else { return }
+        var policy = settings.policy(for: cleanup.bundleID, displayName: cleanup.displayName)
+        let message: String
+        switch cleanup.trigger {
+        case .visibleWindow:
+            policy.visibleWindowAction = action
+            message = "\(cleanup.displayName) will \(action.title.lowercased()) idle windows automatically."
+        case .idleApp:
+            guard action == .quit else { return }
+            policy.idleQuitAction = .quit
+            message = "\(cleanup.displayName) will quit automatically when idle."
+        }
+        policy.displayName = cleanup.displayName
+        settings.policies[cleanup.bundleID] = policy
+        approve(cleanup, as: action)
+        lastEventMessage = message
     }
 
     func cleanupNow(_ app: RunningApp, action: CleanupAction) {
@@ -322,6 +363,7 @@ final class AppModel: NSObject, ObservableObject {
                 hasPendingCleanup: hasPendingCleanup
             )
             let decision: IdleDecision
+            let decisionTrigger: CleanupTrigger
             if case .ignore = visibleDecision {
                 decision = decisionEngine.idleAppDecision(
                     settings: settings,
@@ -332,8 +374,10 @@ final class AppModel: NSObject, ObservableObject {
                     hasVisibleWindows: app.hasVisibleWindows,
                     hasPendingCleanup: hasPendingCleanup
                 )
+                decisionTrigger = .idleApp
             } else {
                 decision = visibleDecision
+                decisionTrigger = .visibleWindow
             }
 
             switch decision {
@@ -349,7 +393,12 @@ final class AppModel: NSObject, ObservableObject {
                     ? "\(app.displayName) is idle. Asking what to do."
                     : "\(app.displayName) is idle. \(waitingCount) more waiting."
             case let .perform(action):
-                perform(action, bundleID: app.bundleID, displayName: app.displayName)
+                perform(
+                    action,
+                    bundleID: app.bundleID,
+                    displayName: app.displayName,
+                    preferWindowMinimize: action == .hide && decisionTrigger == .visibleWindow
+                )
             }
         }
     }
@@ -428,5 +477,14 @@ final class AppModel: NSObject, ObservableObject {
         let seconds = max(0, Int(until.timeIntervalSince(Date())))
         if seconds < 60 { return "Cooling down \(seconds)s" }
         return "Cooling down \(Int(ceil(Double(seconds) / 60.0)))m"
+    }
+
+    private func windowActionTitle(_ action: CleanupAction) -> String {
+        switch action {
+        case .ask: "Ask"
+        case .hide: "Always Hide"
+        case .quit: "Always Quit"
+        case .off: "Off"
+        }
     }
 }

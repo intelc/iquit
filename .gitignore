@@ -13,4 +13,5 @@ DerivedData/
 *.cer
 *.p12
 *.mobileprovision
+sparkle-private-key.txt
 Config/iQuit.local.xcconfig

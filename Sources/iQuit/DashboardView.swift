@@ -91,6 +91,7 @@ private struct ProtectedAppsSection: View {
 
 private struct HeaderBar: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var updater: AppUpdater
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -117,6 +118,15 @@ private struct HeaderBar: View {
                 }
 
                 Spacer(minLength: 12)
+
+                Button {
+                    updater.checkForUpdates()
+                } label: {
+                    Label("Check for Updates...", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!updater.canCheckForUpdates)
 
                 if !model.pendingCleanups.isEmpty {
                     HeaderMetric(value: "\(model.pendingCleanups.count)", label: "review", systemImage: "tray")

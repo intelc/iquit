@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6
+
+- Added Sparkle-powered in-app updates with quiet background checks and manual Check for Updates controls.
+- Added a local release script that builds, notarizes, signs the appcast, and publishes GitHub release assets.
+
 ## 0.1.5
 
 - Added live idle duration text to cleanup prompts.

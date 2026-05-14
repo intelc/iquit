@@ -13,9 +13,9 @@ read_xcconfig_value() {
   if [[ -f "$LOCAL_CONFIG_FILE" ]]; then
     files+=("$LOCAL_CONFIG_FILE")
   fi
-  awk -F '=' -v key="$key" '
+  awk -v key="$key" '
     $1 ~ "^[[:space:]]*" key "[[:space:]]*$" {
-      value=$2
+      value=substr($0, index($0, "=") + 1)
       sub(/^[[:space:]]*/, "", value)
       sub(/[[:space:]]*$/, "", value)
     }

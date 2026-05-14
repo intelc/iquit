@@ -12,13 +12,19 @@ let package = Package(
         .executable(name: "iQuit", targets: ["iQuit"]),
         .library(name: "iQuitCore", targets: ["iQuitCore"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.1"),
+    ],
     targets: [
         .target(
             name: "iQuitCore"
         ),
         .executableTarget(
             name: "iQuit",
-            dependencies: ["iQuitCore"]
+            dependencies: [
+                "iQuitCore",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ]
         ),
         .testTarget(
             name: "iQuitTests",

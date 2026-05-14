@@ -1,5 +1,9 @@
 DEVELOPMENT_TEAM =
 IQUIT_BUNDLE_IDENTIFIER = com.yihengchen.iquit
+IQUIT_VERSION = 0.1.5
+IQUIT_BUILD_NUMBER = 6
+IQUIT_APPCAST_URL = https://github.com/intelc/iquit/releases/latest/download/appcast.xml
+SPARKLE_PUBLIC_ED_KEY = wdb30iXADfKM1YXnH9iQCgB+cppF9JhOZ7IA/4V/gVc=
 CODE_SIGN_IDENTITY = -
 
 #include? "iQuit.local.xcconfig"

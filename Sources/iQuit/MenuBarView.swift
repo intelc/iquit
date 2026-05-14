@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var updater: AppUpdater
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -60,6 +61,13 @@ struct MenuBarView: View {
                 }
 
                 Spacer()
+
+                Button {
+                    updater.checkForUpdates()
+                } label: {
+                    Label("Check for Updates...", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(!updater.canCheckForUpdates)
 
                 Button("Quit iQuit") {
                     NSApplication.shared.terminate(nil)

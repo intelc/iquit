@@ -106,11 +106,19 @@ The packaged disk image is written to `.build/iQuit.dmg`.
 
 Developer ID signing and notarization follow the same pattern as Mosspath's release pipeline: ignored local signing config, Developer ID + hardened runtime, a signed DMG, `notarytool --wait`, stapling, then Gatekeeper validation against both the DMG and the app inside it.
 
+In-app updates use Sparkle 2 with a signed appcast and DMG assets hosted on
+GitHub Releases. See [`docs/RELEASE_WORKFLOW.md`](docs/RELEASE_WORKFLOW.md)
+for the local release script and checklist.
+
 Create `Config/iQuit.local.xcconfig`:
 
 ```xcconfig
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
 IQUIT_BUNDLE_IDENTIFIER = com.yourname.iquit
+IQUIT_VERSION = 0.1.5
+IQUIT_BUILD_NUMBER = 6
+IQUIT_APPCAST_URL = https://github.com/intelc/iquit/releases/latest/download/appcast.xml
+SPARKLE_PUBLIC_ED_KEY = public-key-from-sparkle-generate_keys
 CODE_SIGN_IDENTITY = Developer ID Application: Your Name (YOUR_TEAM_ID)
 NOTARY_KEYCHAIN_PROFILE = iquit-notary
 ```
@@ -126,6 +134,18 @@ Then build, submit, staple, and validate:
 ```sh
 ./Scripts/build-dmg.sh
 ./Scripts/notarize-dmg.sh
+```
+
+Generate a signed Sparkle appcast after notarization:
+
+```sh
+./Scripts/generate-appcast.sh
+```
+
+For a complete release, run:
+
+```sh
+./Scripts/release-local.sh 0.1.6
 ```
 
 CI can use the Mosspath-style fallback environment variables instead of a keychain profile: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`.

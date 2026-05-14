@@ -105,7 +105,10 @@ private struct HeaderBar: View {
                     Button {
                         model.requestAccessibilityAccess()
                     } label: {
-                        Label("Enable window access", systemImage: "exclamationmark.shield")
+                        Label(
+                            model.isCheckingAccessibility ? "Checking window access" : "Enable window access",
+                            systemImage: "exclamationmark.shield"
+                        )
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)

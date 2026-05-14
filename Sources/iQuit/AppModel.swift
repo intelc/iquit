@@ -20,6 +20,7 @@ final class AppModel: NSObject, ObservableObject {
     @Published private(set) var pendingCleanups: [PendingCleanup] = []
     @Published private(set) var lastEventMessage = "Keeping things tidy."
     @Published private(set) var accessibilityTrusted = false
+    @Published private(set) var isCheckingAccessibility = false
     @Published private(set) var loginItemStatusDescription = LoginItemManager.statusDescription
     @Published private(set) var hasCompletedOnboarding: Bool
     @Published var isOnboardingPresented: Bool
@@ -31,8 +32,11 @@ final class AppModel: NSObject, ObservableObject {
     private let workspace = NSWorkspace.shared
     private var askPromptController: AskPromptWindowController?
     private var timer: Timer?
+    private var accessibilityPollTimer: Timer?
+    private var accessibilityPollDeadline: Date?
     private var cooldowns: [String: Date] = [:]
     private let cooldownDuration: TimeInterval = 10 * 60
+    private let accessibilityPollDuration: TimeInterval = 5 * 60
     private let promptDuration: TimeInterval = 30
 
     override init() {
@@ -271,9 +275,13 @@ final class AppModel: NSObject, ObservableObject {
 
     func requestAccessibilityAccess() {
         accessibilityTrusted = AccessibilityWindowManager.isTrusted(prompt: true)
-        lastEventMessage = accessibilityTrusted
-            ? "Accessibility access is enabled."
-            : "Grant Accessibility access in System Settings."
+        if accessibilityTrusted {
+            stopAccessibilityPolling()
+            lastEventMessage = "Accessibility access is enabled."
+        } else {
+            startAccessibilityPolling()
+            lastEventMessage = "Grant Accessibility access in System Settings."
+        }
     }
 
     func showOnboarding() {
@@ -342,6 +350,41 @@ final class AppModel: NSObject, ObservableObject {
                 self?.tick()
             }
         }
+    }
+
+    private func startAccessibilityPolling() {
+        accessibilityPollDeadline = Date().addingTimeInterval(accessibilityPollDuration)
+        isCheckingAccessibility = true
+        accessibilityPollTimer?.invalidate()
+
+        let pollTimer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.pollAccessibilityAccess()
+            }
+        }
+        RunLoop.main.add(pollTimer, forMode: .common)
+        accessibilityPollTimer = pollTimer
+    }
+
+    private func pollAccessibilityAccess() {
+        accessibilityTrusted = AccessibilityWindowManager.isTrusted()
+        if accessibilityTrusted {
+            stopAccessibilityPolling()
+            lastEventMessage = "Accessibility access is enabled."
+            return
+        }
+
+        if let accessibilityPollDeadline, Date() >= accessibilityPollDeadline {
+            stopAccessibilityPolling()
+            lastEventMessage = "Still waiting for Accessibility access."
+        }
+    }
+
+    private func stopAccessibilityPolling() {
+        accessibilityPollTimer?.invalidate()
+        accessibilityPollTimer = nil
+        accessibilityPollDeadline = nil
+        isCheckingAccessibility = false
     }
 
     @objc private func workspaceChanged(_: Notification) {

@@ -60,7 +60,7 @@ struct OnboardingView: View {
                 Button {
                     model.requestAccessibilityAccess()
                 } label: {
-                    Label(model.accessibilityTrusted ? "Window Access Enabled" : "Enable Window Access", systemImage: "checkmark.shield")
+                    Label(windowAccessButtonTitle, systemImage: "checkmark.shield")
                 }
                 .buttonStyle(.bordered)
                 .tint(model.accessibilityTrusted ? .green : .purple)
@@ -80,6 +80,12 @@ struct OnboardingView: View {
         }
         .padding(24)
         .frame(width: 680)
+    }
+
+    private var windowAccessButtonTitle: String {
+        if model.accessibilityTrusted { return "Window Access Enabled" }
+        if model.isCheckingAccessibility { return "Checking Window Access" }
+        return "Enable Window Access"
     }
 }
 

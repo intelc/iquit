@@ -14,8 +14,10 @@ try FileManager.default.createDirectory(
 
 let width = 960
 let height = 540
-let frameCount = 64
-let frameDelay = 0.055
+let frameCount = 92
+let frameDelay = 0.05
+let promptStartFrame = 14
+let promptCycleLength = 9
 
 func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, _ alpha: CGFloat = 1) -> NSColor {
     NSColor(red: red / 255, green: green / 255, blue: blue / 255, alpha: alpha)
@@ -57,6 +59,31 @@ func drawText(_ string: String, at point: CGPoint, size: CGFloat, weight: NSFont
     NSString(string: string).draw(at: point, withAttributes: attrs)
 }
 
+func drawCenteredText(_ string: String, in rect: CGRect, size: CGFloat, weight: NSFont.Weight = .regular, color textColor: NSColor = .white, alpha: CGFloat = 1) {
+    let attrs: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: size, weight: weight),
+        .foregroundColor: textColor.withAlphaComponent(alpha),
+    ]
+    let measured = NSString(string: string).size(withAttributes: attrs)
+    let point = CGPoint(
+        x: rect.midX - measured.width / 2,
+        y: rect.midY - measured.height / 2 - 1
+    )
+    NSString(string: string).draw(at: point, withAttributes: attrs)
+}
+
+func promptStart(for index: Int) -> CGFloat {
+    CGFloat(promptStartFrame + index * promptCycleLength)
+}
+
+func promptWindowIndex(frameIndex: Int) -> Int? {
+    let relative = frameIndex - promptStartFrame
+    guard relative >= 0 else { return nil }
+    let index = relative / promptCycleLength
+    guard index < windows.count else { return nil }
+    return index
+}
+
 func roundedRect(_ rect: CGRect, radius: CGFloat) -> NSBezierPath {
     NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
 }
@@ -74,10 +101,13 @@ func strokeRounded(_ rect: CGRect, radius: CGFloat, color stroke: NSColor, lineW
 }
 
 func drawWindow(_ window: DemoWindow, frameIndex: Int) {
-    let scan = smoothstep(10, 24, CGFloat(frameIndex))
-    let clean = smoothstep(38, 54, CGFloat(frameIndex))
-    let index = CGFloat(windows.firstIndex { $0.title == window.title } ?? 0)
-    let delay = min(1, max(0, clean * 1.8 - index * 0.12))
+    let windowIndex = windows.firstIndex { $0.title == window.title } ?? 0
+    let index = CGFloat(windowIndex)
+    let activeWindowIndex = promptWindowIndex(frameIndex: frameIndex)
+    let isCurrentPrompt = activeWindowIndex == windowIndex
+    let scan = smoothstep(7, 16, CGFloat(frameIndex))
+    let clean = smoothstep(promptStart(for: windowIndex) + 5, promptStart(for: windowIndex) + 9, CGFloat(frameIndex))
+    let delay = clean
     let down = 72 * delay
     let alpha = 1 - delay
     let scale = 1 - 0.10 * delay
@@ -115,31 +145,36 @@ func drawWindow(_ window: DemoWindow, frameIndex: Int) {
 
     if scan > 0.05 && clean < 0.95 {
         let pulse = 0.5 + 0.5 * sin(CGFloat(frameIndex) * 0.72 + index)
+        let highlight = isCurrentPrompt ? 1.0 : 0.35
         strokeRounded(
             rect.insetBy(dx: -4, dy: -4),
             radius: 18,
-            color: color(41, 151, 255, 0.28 + 0.34 * pulse * scan),
+            color: color(41, 151, 255, (0.18 + 0.38 * pulse * scan) * highlight),
             lineWidth: 3
         )
         fillRounded(
             CGRect(x: rect.maxX - 70, y: rect.minY + 14, width: 50, height: 22),
             radius: 11,
-            color: color(41, 151, 255, 0.90 * scan)
+            color: color(41, 151, 255, (isCurrentPrompt ? 0.94 : 0.40) * scan)
         )
-        drawText("idle", at: CGPoint(x: rect.maxX - 56, y: rect.minY + 18), size: 11, weight: .bold, color: .white, alpha: scan)
+        drawCenteredText("idle", in: CGRect(x: rect.maxX - 70, y: rect.minY + 14, width: 50, height: 22), size: 11, weight: .bold, color: .white, alpha: scan)
     }
 
     NSGraphicsContext.current?.cgContext.restoreGState()
 }
 
 func drawPrompt(frameIndex: Int) {
-    let appear = smoothstep(20, 30, CGFloat(frameIndex))
-    let leave = smoothstep(48, 58, CGFloat(frameIndex))
+    guard let activeIndex = promptWindowIndex(frameIndex: frameIndex) else { return }
+    let start = promptStart(for: activeIndex)
+    let local = CGFloat(frameIndex) - start
+    let appear = smoothstep(0, 2, local)
+    let leave = smoothstep(6, 8, local)
     let alpha = appear * (1 - leave)
     guard alpha > 0.02 else { return }
 
-    let y = mix(422, 364, appear) + 18 * leave
-    let rect = CGRect(x: 226, y: y, width: 508, height: 86)
+    let app = windows[activeIndex]
+    let y = mix(426, 396, appear) + 10 * leave
+    let rect = CGRect(x: 472, y: y, width: 460, height: 86)
     let ctx = NSGraphicsContext.current!.cgContext
     ctx.saveGState()
     ctx.setAlpha(alpha)
@@ -147,22 +182,25 @@ func drawPrompt(frameIndex: Int) {
 
     fillRounded(rect, radius: 18, color: color(29, 37, 45, 0.98))
     strokeRounded(rect, radius: 18, color: color(170, 199, 230, 0.35), lineWidth: 1.5)
-    fillRounded(CGRect(x: rect.minX + 20, y: rect.minY + 20, width: 46, height: 46), radius: 10, color: color(41, 151, 255, 0.20))
-    drawText("7", at: CGPoint(x: rect.minX + 37, y: rect.minY + 34), size: 20, weight: .bold, color: color(91, 184, 255))
-    drawText("idle windows found", at: CGPoint(x: rect.minX + 84, y: rect.minY + 48), size: 18, weight: .bold, color: color(244, 248, 255))
-    drawText("Hide or quit the clutter?", at: CGPoint(x: rect.minX + 84, y: rect.minY + 25), size: 14, weight: .medium, color: color(177, 190, 205))
+    let iconRect = CGRect(x: rect.minX + 20, y: rect.minY + 20, width: 46, height: 46)
+    fillRounded(iconRect, radius: 10, color: app.tint.withAlphaComponent(0.92))
+    drawCenteredText(String(app.title.prefix(1)), in: iconRect, size: 18, weight: .bold, color: .white)
+    drawText("\(app.title) is idle", at: CGPoint(x: rect.minX + 84, y: rect.minY + 48), size: 18, weight: .bold, color: color(244, 248, 255))
+    drawText("Hide or quit it?", at: CGPoint(x: rect.minX + 84, y: rect.minY + 25), size: 14, weight: .medium, color: color(177, 190, 205))
 
-    fillRounded(CGRect(x: rect.maxX - 222, y: rect.minY + 24, width: 92, height: 38), radius: 10, color: color(24, 145, 245))
-    drawText("Hide", at: CGPoint(x: rect.maxX - 166, y: rect.minY + 33), size: 15, weight: .bold)
-    fillRounded(CGRect(x: rect.maxX - 116, y: rect.minY + 24, width: 76, height: 38), radius: 10, color: color(245, 68, 72))
-    drawText("Quit", at: CGPoint(x: rect.maxX - 92, y: rect.minY + 33), size: 15, weight: .bold)
+    let hideRect = CGRect(x: rect.maxX - 190, y: rect.minY + 24, width: 86, height: 38)
+    let quitRect = CGRect(x: rect.maxX - 90, y: rect.minY + 24, width: 66, height: 38)
+    fillRounded(hideRect, radius: 10, color: color(24, 145, 245))
+    drawCenteredText("Hide", in: hideRect, size: 15, weight: .bold)
+    fillRounded(quitRect, radius: 10, color: color(245, 68, 72))
+    drawCenteredText("Quit", in: quitRect, size: 15, weight: .bold)
 
-    let progress = max(0, min(1, 1 - CGFloat(frameIndex - 30) / 26))
+    let progress = max(0, min(1, 1 - local / 8))
     fillRounded(CGRect(x: rect.minX + 2, y: rect.minY + 1, width: (rect.width - 4) * progress, height: 4), radius: 2, color: color(41, 151, 255, 0.95))
 
-    let click = smoothstep(33, 42, CGFloat(frameIndex))
-    let cursorX = mix(788, rect.maxX - 184, click)
-    let cursorY = mix(246, rect.minY + 44, click)
+    let click = smoothstep(2, 5, local)
+    let cursorX = mix(900, hideRect.midX + 10, click)
+    let cursorY = mix(294, hideRect.midY + 4, click)
     let cursor = NSBezierPath()
     cursor.move(to: CGPoint(x: cursorX, y: cursorY))
     cursor.line(to: CGPoint(x: cursorX + 18, y: cursorY - 42))
@@ -175,23 +213,23 @@ func drawPrompt(frameIndex: Int) {
     cursor.fill()
     cursor.stroke()
 
-    if frameIndex >= 40 && frameIndex <= 44 {
-        strokeRounded(CGRect(x: rect.maxX - 226, y: rect.minY + 20, width: 100, height: 46), radius: 12, color: color(255, 255, 255, 0.68), lineWidth: 3)
+    if local >= 5 && local <= 6 {
+        strokeRounded(hideRect.insetBy(dx: -4, dy: -4), radius: 12, color: color(255, 255, 255, 0.68), lineWidth: 3)
     }
 
     ctx.restoreGState()
 }
 
 func drawCleanState(frameIndex: Int) {
-    let clean = smoothstep(46, 60, CGFloat(frameIndex))
+    let clean = smoothstep(promptStart(for: windows.count - 1) + 8, promptStart(for: windows.count - 1) + 14, CGFloat(frameIndex))
     guard clean > 0.02 else { return }
 
     let ctx = NSGraphicsContext.current!.cgContext
     ctx.saveGState()
     ctx.setAlpha(clean)
     fillRounded(CGRect(x: 316, y: 190, width: 328, height: 74), radius: 18, color: color(23, 118, 84, 0.86))
-    drawText("Desktop cleared", at: CGPoint(x: 382, y: 230), size: 20, weight: .bold, color: .white)
-    drawText("Apps are still protected from force quit", at: CGPoint(x: 382, y: 207), size: 13, weight: .medium, color: color(207, 247, 225))
+    drawText("Desktop cleared", at: CGPoint(x: 402, y: 230), size: 20, weight: .bold, color: .white)
+    drawText("One gentle hide at a time", at: CGPoint(x: 402, y: 207), size: 13, weight: .medium, color: color(207, 247, 225))
 
     color(35, 236, 132).setStroke()
     let check = NSBezierPath()
@@ -200,7 +238,7 @@ func drawCleanState(frameIndex: Int) {
     check.lineJoinStyle = .round
     check.move(to: CGPoint(x: 344, y: 225))
     check.line(to: CGPoint(x: 358, y: 210))
-    check.line(to: CGPoint(x: 386, y: 242))
+    check.line(to: CGPoint(x: 384, y: 242))
     check.stroke()
     ctx.restoreGState()
 }
@@ -244,7 +282,7 @@ func drawFrame(_ frameIndex: Int) throws -> CGImage {
         drawWindow(window, frameIndex: frameIndex)
     }
 
-    let scan = smoothstep(9, 23, CGFloat(frameIndex)) * (1 - smoothstep(32, 48, CGFloat(frameIndex)))
+    let scan = smoothstep(7, 16, CGFloat(frameIndex)) * (1 - smoothstep(promptStart(for: windows.count - 1) + 3, promptStart(for: windows.count - 1) + 8, CGFloat(frameIndex)))
     if scan > 0.01 {
         let ring = 48 + 18 * sin(CGFloat(frameIndex) * 0.7)
         color(41, 151, 255, 0.18 * scan).setFill()

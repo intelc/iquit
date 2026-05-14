@@ -86,12 +86,12 @@ final class AppModel: NSObject, ObservableObject {
         lastEventMessage = isEnabled ? "\(app.displayName) window cleanup is on." : "\(app.displayName) window cleanup is off."
     }
 
-    func setVisibleWindowAction(_ action: CleanupAction, for app: RunningApp) {
+    func setVisibleWindowAction(_ action: AppPolicy.VisibleWindowAction, for app: RunningApp) {
         var policy = policy(for: app)
         policy.visibleWindowAction = action
         policy.displayName = app.displayName
         settings.policies[app.bundleID] = policy
-        lastEventMessage = "\(app.displayName) window cleanup: \(windowActionTitle(action))."
+        lastEventMessage = "\(app.displayName) window cleanup: \(action.title)."
     }
 
     func setIdleQuitEnabled(_ isEnabled: Bool, for app: RunningApp) {
@@ -191,12 +191,11 @@ final class AppModel: NSObject, ObservableObject {
         guard action == .hide || action == .quit else { return }
         var policy = settings.policy(for: cleanup.bundleID, displayName: cleanup.displayName)
         let message: String
-        switch cleanup.trigger {
-        case .visibleWindow:
-            policy.visibleWindowAction = action
-            message = "\(cleanup.displayName) will \(action.title.lowercased()) idle windows automatically."
-        case .idleApp:
-            guard action == .quit else { return }
+        if action == .hide {
+            guard cleanup.trigger == .visibleWindow else { return }
+            policy.visibleWindowAction = .hide
+            message = "\(cleanup.displayName) will hide idle windows automatically."
+        } else {
             policy.idleQuitAction = .quit
             message = "\(cleanup.displayName) will quit automatically when idle."
         }
@@ -479,12 +478,4 @@ final class AppModel: NSObject, ObservableObject {
         return "Cooling down \(Int(ceil(Double(seconds) / 60.0)))m"
     }
 
-    private func windowActionTitle(_ action: CleanupAction) -> String {
-        switch action {
-        case .ask: "Ask"
-        case .hide: "Always Hide"
-        case .quit: "Always Quit"
-        case .off: "Off"
-        }
-    }
 }

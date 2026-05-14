@@ -294,7 +294,7 @@ private struct AppPolicyRow: View {
 private struct WindowRuleControl: View {
     var title: String
     var systemImage: String
-    @Binding var action: CleanupAction
+    @Binding var action: AppPolicy.VisibleWindowAction
     var tint: Color
     @Binding var minutes: Int
 
@@ -310,13 +310,7 @@ private struct WindowRuleControl: View {
                 Button {
                     action = .hide
                 } label: {
-                    Label("Always Hide", systemImage: "eye.slash")
-                }
-
-                Button(role: .destructive) {
-                    action = .quit
-                } label: {
-                    Label("Always Quit", systemImage: "power")
+                    Label("Auto", systemImage: "eye.slash")
                 }
 
                 Divider()
@@ -349,11 +343,10 @@ private struct WindowRuleControl: View {
         .frame(width: 232)
     }
 
-    private func windowActionTitle(_ action: CleanupAction) -> String {
+    private func windowActionTitle(_ action: AppPolicy.VisibleWindowAction) -> String {
         switch action {
         case .ask: "Ask"
-        case .hide: "Auto Hide"
-        case .quit: "Auto Quit"
+        case .hide: "Auto"
         case .off: "Off"
         }
     }

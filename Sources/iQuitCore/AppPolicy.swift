@@ -5,6 +5,22 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
         bundleID
     }
 
+    public enum VisibleWindowAction: String, CaseIterable, Codable, Identifiable, Sendable {
+        case ask
+        case hide
+        case off
+
+        public var id: String { rawValue }
+
+        public var title: String {
+            switch self {
+            case .ask: "Ask"
+            case .hide: "Auto"
+            case .off: "Off"
+            }
+        }
+    }
+
     public enum IdleQuitAction: String, CaseIterable, Codable, Identifiable, Sendable {
         case ask
         case quit
@@ -23,7 +39,7 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
 
     public var bundleID: String
     public var displayName: String
-    public var visibleWindowAction: CleanupAction
+    public var visibleWindowAction: VisibleWindowAction
     public var idleQuitAction: IdleQuitAction
     public var visibleWindowMinutes: Int
     public var idleQuitMinutes: Int
@@ -58,7 +74,7 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
     public init(
         bundleID: String,
         displayName: String,
-        visibleWindowAction: CleanupAction? = nil,
+        visibleWindowAction: VisibleWindowAction? = nil,
         idleQuitAction: IdleQuitAction? = nil,
         visibleWindowCleanupEnabled: Bool = true,
         idleQuitEnabled: Bool = true,
@@ -97,8 +113,16 @@ public struct AppPolicy: Codable, Equatable, Identifiable, Sendable {
         let oldIdleMinutes = try container.decodeIfPresent(Int.self, forKey: .idleMinutes)
         let oldVisibleWindowEnabled = try container.decodeIfPresent(Bool.self, forKey: .visibleWindowCleanupEnabled) ?? (oldAction != .off)
         let oldIdleQuitEnabled = try container.decodeIfPresent(Bool.self, forKey: .idleQuitEnabled) ?? true
-        visibleWindowAction = try container.decodeIfPresent(CleanupAction.self, forKey: .visibleWindowAction) ?? (oldVisibleWindowEnabled ? .ask : .off)
-        idleQuitAction = try container.decodeIfPresent(IdleQuitAction.self, forKey: .idleQuitAction) ?? (oldIdleQuitEnabled ? .ask : .off)
+        let legacyVisibleWindowAction = try? container.decodeIfPresent(CleanupAction.self, forKey: .visibleWindowAction)
+        if let decodedVisibleWindowAction = try? container.decodeIfPresent(VisibleWindowAction.self, forKey: .visibleWindowAction) {
+            visibleWindowAction = decodedVisibleWindowAction
+        } else if let decodedLegacyAction = legacyVisibleWindowAction {
+            visibleWindowAction = decodedLegacyAction == .off ? .off : decodedLegacyAction == .hide ? .hide : .ask
+        } else {
+            visibleWindowAction = oldVisibleWindowEnabled ? .ask : .off
+        }
+        idleQuitAction = try container.decodeIfPresent(IdleQuitAction.self, forKey: .idleQuitAction)
+            ?? (legacyVisibleWindowAction == .quit ? .quit : oldIdleQuitEnabled ? .ask : .off)
         visibleWindowMinutes = try max(1, container.decodeIfPresent(Int.self, forKey: .visibleWindowMinutes) ?? oldIdleMinutes ?? 20)
         idleQuitMinutes = try max(1, container.decodeIfPresent(Int.self, forKey: .idleQuitMinutes) ?? 60)
         isProtected = try container.decodeIfPresent(Bool.self, forKey: .isProtected) ?? false

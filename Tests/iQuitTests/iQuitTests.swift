@@ -19,6 +19,14 @@ import Testing
     #expect(policy.idleQuitAction == .ask)
 }
 
+@Test func appPolicyMigratesLegacyWindowAutoQuitToIdleAutoQuit() throws {
+    let legacyJSON = #"{"bundleID":"com.example.mail","displayName":"Mail","visibleWindowAction":"quit","visibleWindowMinutes":20,"idleQuitMinutes":60,"isProtected":false}"#
+    let policy = try JSONDecoder().decode(AppPolicy.self, from: Data(legacyJSON.utf8))
+
+    #expect(policy.visibleWindowAction == .ask)
+    #expect(policy.idleQuitAction == .quit)
+}
+
 @Test func visibleWindowDecisionIgnoresActiveApps() {
     let engine = IdleDecisionEngine()
     let now = Date()

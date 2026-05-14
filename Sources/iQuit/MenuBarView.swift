@@ -150,8 +150,7 @@ private struct CompactAppRow: View {
         let policy = model.policy(for: app)
         let windowText = switch policy.visibleWindowAction {
         case .ask: "Win Ask"
-        case .hide: "Win Hide"
-        case .quit: "Win Quit"
+        case .hide: "Win Auto"
         case .off: ""
         }
         let quitText = switch policy.idleQuitAction {

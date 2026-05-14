@@ -29,8 +29,8 @@ public struct IdleDecisionEngine: Sendable {
         let threshold = TimeInterval(policy.visibleWindowMinutes * 60)
         guard idleSeconds >= threshold else { return .ignore("Below idle threshold") }
 
-        if policy.visibleWindowAction.isAutomatic {
-            return .perform(policy.visibleWindowAction)
+        if policy.visibleWindowAction == .hide {
+            return .perform(.hide)
         }
 
         return .ask(PendingCleanup(

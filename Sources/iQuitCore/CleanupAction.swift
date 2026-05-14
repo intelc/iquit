@@ -18,11 +18,4 @@ public enum CleanupAction: String, CaseIterable, Codable, Identifiable, Sendable
         case .off: "Off"
         }
     }
-
-    public var isAutomatic: Bool {
-        switch self {
-        case .hide, .quit: true
-        case .ask, .off: false
-        }
-    }
 }

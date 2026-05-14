@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/app-logo-card.png" alt="iQuit app logo" width="260">
+</p>
+
 # iQuit
 
 iQuit is a tiny macOS menu bar app that hides or quits apps you are no longer using.

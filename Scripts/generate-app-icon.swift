@@ -4,7 +4,9 @@ import CoreGraphics
 import Foundation
 
 let outputPath = CommandLine.arguments.dropFirst().first ?? ".build/iQuit.icns"
+let sourcePath = CommandLine.arguments.dropFirst().dropFirst().first ?? "docs/images/app-icon-source.png"
 let outputURL = URL(fileURLWithPath: outputPath)
+let sourceURL = URL(fileURLWithPath: sourcePath)
 let workURL = outputURL
     .deletingLastPathComponent()
     .appendingPathComponent("iQuit.iconset", isDirectory: true)
@@ -32,11 +34,75 @@ let variants = [
     IconVariant(filename: "icon_512x512@2x.png", pixels: 1024),
 ]
 
-func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, _ alpha: CGFloat = 1) -> NSColor {
-    NSColor(red: red / 255, green: green / 255, blue: blue / 255, alpha: alpha)
+guard let sourceImage = NSImage(contentsOf: sourceURL),
+      let sourceCG = sourceImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
+else {
+    throw NSError(
+        domain: "iQuitIcon",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Missing source icon at \(sourceURL.path)"]
+    )
 }
 
-func drawIcon(pixels: Int) throws -> Data {
+guard let sourceTIFF = sourceImage.tiffRepresentation,
+      let sourceRep = NSBitmapImageRep(data: sourceTIFF)
+else {
+    throw NSError(domain: "iQuitIcon", code: 2)
+}
+
+func cropRect(for rep: NSBitmapImageRep) -> CGRect {
+    var minX = rep.pixelsWide
+    var minY = rep.pixelsHigh
+    var maxX = 0
+    var maxY = 0
+
+    for y in 0..<rep.pixelsHigh {
+        for x in 0..<rep.pixelsWide {
+            guard let sampled = rep.colorAt(x: x, y: y),
+                  let rgb = sampled.usingColorSpace(.deviceRGB)
+            else { continue }
+            let isCanvas = rgb.alphaComponent > 0.95
+                && rgb.redComponent > 0.94
+                && rgb.greenComponent > 0.94
+                && rgb.blueComponent > 0.94
+            if !isCanvas {
+                minX = min(minX, x)
+                minY = min(minY, y)
+                maxX = max(maxX, x)
+                maxY = max(maxY, y)
+            }
+        }
+    }
+
+    guard minX < maxX, minY < maxY else {
+        let side = min(rep.pixelsWide, rep.pixelsHigh)
+        return CGRect(
+            x: (rep.pixelsWide - side) / 2,
+            y: (rep.pixelsHigh - side) / 2,
+            width: side,
+            height: side
+        )
+    }
+
+    let padding = Int(Double(max(maxX - minX, maxY - minY)) * 0.03)
+    minX = max(0, minX - padding)
+    minY = max(0, minY - padding)
+    maxX = min(rep.pixelsWide - 1, maxX + padding)
+    maxY = min(rep.pixelsHigh - 1, maxY + padding)
+
+    let contentWidth = maxX - minX + 1
+    let contentHeight = maxY - minY + 1
+    let side = max(contentWidth, contentHeight)
+    let centerX = minX + contentWidth / 2
+    let centerY = minY + contentHeight / 2
+    let originX = min(max(0, centerX - side / 2), max(0, rep.pixelsWide - side))
+    let originY = min(max(0, centerY - side / 2), max(0, rep.pixelsHigh - side))
+    return CGRect(x: originX, y: originY, width: side, height: side)
+}
+
+let sourceCrop = cropRect(for: sourceRep)
+
+func renderIcon(pixels: Int) throws -> Data {
     guard let rep = NSBitmapImageRep(
         bitmapDataPlanes: nil,
         pixelsWide: pixels,
@@ -49,108 +115,46 @@ func drawIcon(pixels: Int) throws -> Data {
         bytesPerRow: 0,
         bitsPerPixel: 0
     ) else {
-        throw NSError(domain: "iQuitIcon", code: 1)
+        throw NSError(domain: "iQuitIcon", code: 2)
     }
 
     rep.size = NSSize(width: pixels, height: pixels)
     guard let graphics = NSGraphicsContext(bitmapImageRep: rep) else {
-        throw NSError(domain: "iQuitIcon", code: 2)
+        throw NSError(domain: "iQuitIcon", code: 3)
     }
 
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = graphics
+    graphics.imageInterpolation = .high
 
-    let ctx = graphics.cgContext
-    let size = CGFloat(pixels)
-    let scale = size / 1024
-    ctx.setShouldAntialias(true)
-    ctx.setAllowsAntialiasing(true)
-    ctx.clear(CGRect(x: 0, y: 0, width: size, height: size))
-
-    let cornerRadius = 228 * scale
-    let rect = CGRect(x: 42 * scale, y: 42 * scale, width: 940 * scale, height: 940 * scale)
-    let basePath = CGPath(roundedRect: rect, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
-
-    ctx.saveGState()
-    ctx.addPath(basePath)
-    ctx.clip()
-
-    let gradient = CGGradient(
-        colorsSpace: CGColorSpaceCreateDeviceRGB(),
-        colors: [
-            color(9, 147, 255).cgColor,
-            color(65, 96, 255).cgColor,
-            color(104, 76, 231).cgColor,
-        ] as CFArray,
-        locations: [0.0, 0.56, 1.0]
-    )!
-    ctx.drawLinearGradient(
-        gradient,
-        start: CGPoint(x: 160 * scale, y: 930 * scale),
-        end: CGPoint(x: 850 * scale, y: 80 * scale),
-        options: []
-    )
-
-    ctx.setFillColor(color(255, 255, 255, 0.16).cgColor)
-    ctx.fillEllipse(in: CGRect(x: 72 * scale, y: 670 * scale, width: 350 * scale, height: 350 * scale))
-
-    ctx.setFillColor(color(20, 32, 80, 0.20).cgColor)
-    ctx.fillEllipse(in: CGRect(x: 600 * scale, y: -80 * scale, width: 420 * scale, height: 420 * scale))
-    ctx.restoreGState()
-
-    ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -18 * scale), blur: 34 * scale, color: color(0, 0, 0, 0.22).cgColor)
-    ctx.setFillColor(color(238, 247, 255).cgColor)
-    ctx.fillEllipse(in: CGRect(x: 278 * scale, y: 238 * scale, width: 420 * scale, height: 420 * scale))
-    ctx.restoreGState()
-
-    ctx.setFillColor(color(42, 105, 245).cgColor)
-    ctx.fillEllipse(in: CGRect(x: 424 * scale, y: 318 * scale, width: 390 * scale, height: 390 * scale))
-
-    ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -10 * scale), blur: 18 * scale, color: color(0, 0, 0, 0.18).cgColor)
-    ctx.setStrokeColor(color(204, 246, 255, 0.94).cgColor)
-    ctx.setLineWidth(54 * scale)
-    ctx.setLineCap(.round)
-    let ringRect = CGRect(x: 610 * scale, y: 240 * scale, width: 214 * scale, height: 214 * scale)
-    ctx.strokeEllipse(in: ringRect)
-    ctx.move(to: CGPoint(x: 717 * scale, y: 440 * scale))
-    ctx.addLine(to: CGPoint(x: 717 * scale, y: 548 * scale))
-    ctx.strokePath()
-    ctx.restoreGState()
-
-    let zColor = color(224, 248, 255, 0.95)
-    let zPositions: [(String, CGFloat, CGFloat, CGFloat)] = [
-        ("z", 616, 700, 86),
-        ("z", 704, 762, 64),
-        ("z", 782, 804, 48),
-    ]
-    for (text, x, y, fontSize) in zPositions {
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: fontSize * scale, weight: .bold),
-            .foregroundColor: zColor,
-        ]
-        NSString(string: text).draw(
-            at: CGPoint(x: x * scale, y: y * scale),
-            withAttributes: attrs
-        )
+    let rect = CGRect(x: 0, y: 0, width: pixels, height: pixels)
+    graphics.cgContext.clear(rect)
+    if let cropped = sourceCG.cropping(to: sourceCrop) {
+        graphics.cgContext.saveGState()
+        let radius = CGFloat(pixels) * 0.20
+        graphics.cgContext.addPath(CGPath(
+            roundedRect: rect.insetBy(dx: CGFloat(pixels) * 0.04, dy: CGFloat(pixels) * 0.04),
+            cornerWidth: radius,
+            cornerHeight: radius,
+            transform: nil
+        ))
+        graphics.cgContext.clip()
+        graphics.cgContext.draw(cropped, in: rect)
+        graphics.cgContext.restoreGState()
+    } else {
+        graphics.cgContext.draw(sourceCG, in: rect)
     }
-
-    ctx.addPath(basePath)
-    ctx.setStrokeColor(color(255, 255, 255, 0.22).cgColor)
-    ctx.setLineWidth(3 * scale)
-    ctx.strokePath()
 
     NSGraphicsContext.restoreGraphicsState()
 
     guard let data = rep.representation(using: .png, properties: [:]) else {
-        throw NSError(domain: "iQuitIcon", code: 3)
+        throw NSError(domain: "iQuitIcon", code: 4)
     }
     return data
 }
 
 for variant in variants {
-    let data = try drawIcon(pixels: variant.pixels)
+    let data = try renderIcon(pixels: variant.pixels)
     try data.write(to: workURL.appendingPathComponent(variant.filename))
 }
 

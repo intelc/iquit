@@ -4,6 +4,10 @@ import Foundation
 @MainActor
 enum AccessibilityWindowManager {
     static func isTrusted(prompt: Bool = false) -> Bool {
+        guard prompt else {
+            return AXIsProcessTrusted() || canReadFocusedApplication()
+        }
+
         let options = ["AXTrustedCheckOptionPrompt": prompt] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
     }
@@ -21,6 +25,17 @@ enum AccessibilityWindowManager {
         return windows.reduce(0) { count, window in
             count + (minimize(window) ? 1 : 0)
         }
+    }
+
+    private static func canReadFocusedApplication() -> Bool {
+        let systemWideElement = AXUIElementCreateSystemWide()
+        var focusedApplication: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(
+            systemWideElement,
+            kAXFocusedApplicationAttribute as CFString,
+            &focusedApplication
+        )
+        return result == .success && focusedApplication != nil
     }
 
     private static func minimize(_ window: AXUIElement) -> Bool {

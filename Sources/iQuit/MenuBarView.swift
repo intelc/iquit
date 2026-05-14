@@ -29,12 +29,21 @@ struct MenuBarView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Running Apps")
+                Text("Next Up")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
 
-                ForEach(model.sortedRunningApps.prefix(6)) { app in
-                    CompactAppRow(app: app)
+                if model.upcomingCleanups.isEmpty {
+                    Text("No cleanup actions coming up.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 4)
+                } else {
+                    ForEach(model.upcomingCleanups) { upcoming in
+                        UpcomingCleanupRow(upcoming: upcoming)
+                            .environmentObject(model)
+                    }
                 }
             }
 
@@ -117,50 +126,30 @@ struct MenuBarView: View {
     }
 }
 
-private struct CompactAppRow: View {
+private struct UpcomingCleanupRow: View {
     @EnvironmentObject private var model: AppModel
-    var app: RunningApp
+    var upcoming: AppModel.UpcomingCleanup
 
     var body: some View {
-        HStack(spacing: 10) {
-            AppIconView(icon: app.icon, size: 28)
+        HStack(spacing: 9) {
+            AppIconView(icon: upcoming.app.icon, size: 24)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(app.displayName)
+                Text(upcoming.app.displayName)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
-                Text(model.idleDescription(for: app))
+                Text(model.idleDescription(for: upcoming.app))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            Text(ruleSummary)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
+            Label(model.upcomingDescription(upcoming), systemImage: upcoming.trigger == .visibleWindow ? "macwindow" : "power")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(upcoming.trigger == .visibleWindow ? .blue : .red)
+                .lineLimit(1)
         }
-        .padding(.vertical, 2)
-    }
-
-    private var ruleSummary: String {
-        let policy = model.policy(for: app)
-        let windowText = switch policy.visibleWindowAction {
-        case .ask: "Win Ask"
-        case .hide: "Win Auto"
-        case .off: ""
-        }
-        let quitText = switch policy.idleQuitAction {
-        case .ask: "Quit Ask"
-        case .quit: "Auto Quit"
-        case .off: ""
-        }
-        return [windowText, quitText].filter { !$0.isEmpty }.joined(separator: " + ").nilIfEmpty ?? "Off"
-    }
-}
-
-private extension String {
-    var nilIfEmpty: String? {
-        isEmpty ? nil : self
+        .padding(.vertical, 3)
     }
 }

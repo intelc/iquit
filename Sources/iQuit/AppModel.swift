@@ -5,6 +5,17 @@ import iQuitCore
 
 @MainActor
 final class AppModel: NSObject, ObservableObject {
+    struct UpcomingCleanup: Identifiable {
+        var id: String {
+            "\(app.bundleID)-\(trigger.rawValue)"
+        }
+
+        var app: RunningApp
+        var trigger: CleanupTrigger
+        var actionDescription: String
+        var remainingSeconds: Int
+    }
+
     @Published private(set) var runningApps: [RunningApp] = []
     @Published private(set) var pendingCleanups: [PendingCleanup] = []
     @Published private(set) var lastEventMessage = "Keeping things tidy."
@@ -68,6 +79,41 @@ final class AppModel: NSObject, ObservableObject {
 
     var activeAppName: String {
         runningApps.first(where: \.isActive)?.displayName ?? "No active app"
+    }
+
+    var upcomingCleanups: [UpcomingCleanup] {
+        let now = Date()
+        return runningApps.compactMap { app in
+            guard !app.isActive else { return nil }
+            guard cooldowns[app.bundleID] == nil else { return nil }
+            let policy = policy(for: app)
+            guard !policy.isProtected else { return nil }
+
+            let idleSeconds = max(0, now.timeIntervalSince(app.lastActiveAt))
+            let windowRemaining = nextWindowCleanup(
+                for: app,
+                policy: policy,
+                idleSeconds: idleSeconds
+            )
+            let quitRemaining = nextIdleQuitCleanup(
+                for: app,
+                policy: policy,
+                idleSeconds: idleSeconds
+            )
+
+            guard let next = [windowRemaining, quitRemaining].compactMap({ $0 }).min(by: { $0.remainingSeconds < $1.remainingSeconds }) else {
+                return nil
+            }
+            return next
+        }
+        .sorted { lhs, rhs in
+            if lhs.remainingSeconds != rhs.remainingSeconds {
+                return lhs.remainingSeconds < rhs.remainingSeconds
+            }
+            return lhs.app.displayName.localizedCaseInsensitiveCompare(rhs.app.displayName) == .orderedAscending
+        }
+        .prefix(3)
+        .map { $0 }
     }
 
     var isPaused: Bool {
@@ -250,6 +296,14 @@ final class AppModel: NSObject, ObservableObject {
         let minutes = seconds / 60
         if minutes < 60 { return "\(minutes)m idle" }
         return "\(minutes / 60)h \(minutes % 60)m idle"
+    }
+
+    func upcomingDescription(_ upcoming: UpcomingCleanup) -> String {
+        if upcoming.remainingSeconds <= 0 {
+            return "\(upcoming.actionDescription) now"
+        }
+        let minutes = Int(ceil(Double(upcoming.remainingSeconds) / 60.0))
+        return "\(upcoming.actionDescription) in \(minutes)m"
     }
 
     private func observeWorkspace() {
@@ -476,6 +530,40 @@ final class AppModel: NSObject, ObservableObject {
         let seconds = max(0, Int(until.timeIntervalSince(Date())))
         if seconds < 60 { return "Cooling down \(seconds)s" }
         return "Cooling down \(Int(ceil(Double(seconds) / 60.0)))m"
+    }
+
+    private func nextWindowCleanup(
+        for app: RunningApp,
+        policy: AppPolicy,
+        idleSeconds: TimeInterval
+    ) -> UpcomingCleanup? {
+        guard app.hasVisibleWindows else { return nil }
+        guard policy.visibleWindowAction != .off else { return nil }
+        let remaining = max(0, Int(ceil(TimeInterval(policy.visibleWindowMinutes * 60) - idleSeconds)))
+        let action = policy.visibleWindowAction == .hide ? "Auto hide" : "Ask about windows"
+        return UpcomingCleanup(
+            app: app,
+            trigger: .visibleWindow,
+            actionDescription: action,
+            remainingSeconds: remaining
+        )
+    }
+
+    private func nextIdleQuitCleanup(
+        for app: RunningApp,
+        policy: AppPolicy,
+        idleSeconds: TimeInterval
+    ) -> UpcomingCleanup? {
+        guard !app.hasVisibleWindows else { return nil }
+        guard policy.idleQuitAction != .off else { return nil }
+        let remaining = max(0, Int(ceil(TimeInterval(policy.idleQuitMinutes * 60) - idleSeconds)))
+        let action = policy.idleQuitAction == .quit ? "Auto quit" : "Ask to quit"
+        return UpcomingCleanup(
+            app: app,
+            trigger: .idleApp,
+            actionDescription: action,
+            remainingSeconds: remaining
+        )
     }
 
     private func validMinutes(_ minutes: Int) -> Int {

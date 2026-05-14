@@ -24,19 +24,31 @@ final class AppModel: NSObject, ObservableObject {
     @Published private(set) var hasCompletedOnboarding: Bool
     @Published var isOnboardingPresented: Bool
     @Published var settings: AppSettings {
-        didSet { SettingsStore.save(settings) }
+        didSet {
+            SettingsStore.save(settings)
+            guard oldValue != settings else { return }
+            if settings.isEnabled {
+                scheduleEvaluation(after: 1)
+            } else {
+                stopEvaluationTimer()
+            }
+        }
     }
 
     private let decisionEngine = IdleDecisionEngine()
     private let workspace = NSWorkspace.shared
     private var askPromptController: AskPromptWindowController?
-    private var timer: Timer?
+    private var evaluationTimer: Timer?
     private var accessibilityPollTimer: Timer?
     private var accessibilityPollDeadline: Date?
+    private var lastStatusRefresh = Date.distantPast
     private var cooldowns: [String: Date] = [:]
     private let cooldownDuration: TimeInterval = 10 * 60
     private let accessibilityPollDuration: TimeInterval = 5 * 60
     private let promptDuration: TimeInterval = 30
+    private let minimumEvaluationInterval: TimeInterval = 10
+    private let maximumEvaluationInterval: TimeInterval = 60
+    private let statusRefreshInterval: TimeInterval = 5 * 60
 
     override init() {
         settings = SettingsStore.load()
@@ -70,7 +82,8 @@ final class AppModel: NSObject, ObservableObject {
         observeWorkspace()
         syncLoginItemWithPreference()
         refreshRunningApplications()
-        startTimer()
+        evaluateIdleApps()
+        scheduleEvaluation()
     }
 
     var sortedRunningApps: [RunningApp] {
@@ -312,6 +325,12 @@ final class AppModel: NSObject, ObservableObject {
         center.addObserver(
             self,
             selector: #selector(workspaceChanged(_:)),
+            name: NSWorkspace.didDeactivateApplicationNotification,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(workspaceChanged(_:)),
             name: NSWorkspace.didLaunchApplicationNotification,
             object: nil
         )
@@ -321,14 +340,40 @@ final class AppModel: NSObject, ObservableObject {
             name: NSWorkspace.didTerminateApplicationNotification,
             object: nil
         )
+        center.addObserver(
+            self,
+            selector: #selector(workspaceChanged(_:)),
+            name: NSWorkspace.didHideApplicationNotification,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(workspaceChanged(_:)),
+            name: NSWorkspace.didUnhideApplicationNotification,
+            object: nil
+        )
     }
 
-    private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+    private func scheduleEvaluation(after requestedDelay: TimeInterval? = nil) {
+        evaluationTimer?.invalidate()
+        evaluationTimer = nil
+
+        guard settings.isEnabled else { return }
+
+        let delay = max(0.1, requestedDelay ?? nextEvaluationInterval())
+        let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 self?.tick()
             }
         }
+        timer.tolerance = min(15, max(1, delay * 0.1))
+        RunLoop.main.add(timer, forMode: .common)
+        evaluationTimer = timer
+    }
+
+    private func stopEvaluationTimer() {
+        evaluationTimer?.invalidate()
+        evaluationTimer = nil
     }
 
     private func startAccessibilityPolling() {
@@ -367,29 +412,37 @@ final class AppModel: NSObject, ObservableObject {
     }
 
     @objc private func workspaceChanged(_: Notification) {
-        refreshRunningApplications()
         tick()
     }
 
     private func tick() {
+        let now = Date()
+        refreshStatusIfNeeded(now: now)
+        refreshRunningApplications(now: now)
+        evaluateIdleApps(now: now)
+        scheduleEvaluation()
+    }
+
+    private func refreshStatusIfNeeded(now: Date, force: Bool = false) {
+        guard force || now.timeIntervalSince(lastStatusRefresh) >= statusRefreshInterval else { return }
         accessibilityTrusted = AccessibilityWindowManager.isTrusted()
         loginItemStatusDescription = LoginItemManager.statusDescription
-        refreshRunningApplications()
-        evaluateIdleApps()
+        lastStatusRefresh = now
     }
 
     private func syncLoginItemWithPreference() {
         do {
             try LoginItemManager.setEnabled(settings.launchAtLogin)
             loginItemStatusDescription = LoginItemManager.statusDescription
+            lastStatusRefresh = Date()
         } catch {
             loginItemStatusDescription = LoginItemManager.statusDescription
+            lastStatusRefresh = Date()
             lastEventMessage = "Could not update login item: \(error.localizedDescription)"
         }
     }
 
-    private func refreshRunningApplications() {
-        let now = Date()
+    private func refreshRunningApplications(now: Date = Date()) {
         let visibleWindowPIDs = VisibleWindowDetector.visibleWindowProcessIDs()
         let existing = Dictionary(uniqueKeysWithValues: runningApps.map { ($0.bundleID, $0) })
         let apps = workspace.runningApplications.compactMap { app -> RunningApp? in
@@ -399,7 +452,14 @@ final class AppModel: NSObject, ObservableObject {
 
             let displayName = app.localizedName ?? bundleID
             let previous = existing[bundleID]
-            let lastActiveAt = app.isActive ? now : (previous?.lastActiveAt ?? now)
+            let lastActiveAt: Date
+            if app.isActive {
+                lastActiveAt = previous?.lastActiveAt ?? now
+            } else if previous?.isActive == true {
+                lastActiveAt = now
+            } else {
+                lastActiveAt = previous?.lastActiveAt ?? now
+            }
             let hasVisibleWindows = !app.isHidden && visibleWindowPIDs.contains(app.processIdentifier)
 
             return RunningApp(
@@ -413,7 +473,9 @@ final class AppModel: NSObject, ObservableObject {
             )
         }
 
-        runningApps = apps
+        if runningApps != apps {
+            runningApps = apps
+        }
         let activeBundleIDs = Set(apps.map(\.bundleID))
         pendingCleanups
             .filter { !activeBundleIDs.contains($0.bundleID) }
@@ -424,9 +486,8 @@ final class AppModel: NSObject, ObservableObject {
         presentNextPrompt()
     }
 
-    private func evaluateIdleApps() {
+    private func evaluateIdleApps(now: Date = Date()) {
         guard settings.isEnabled else { return }
-        let now = Date()
         removeExpiredCooldowns(now: now)
 
         for app in runningApps {
@@ -553,6 +614,37 @@ final class AppModel: NSObject, ObservableObject {
 
     private func removeExpiredCooldowns(now: Date) {
         cooldowns = cooldowns.filter { $0.value > now }
+    }
+
+    private func nextEvaluationInterval(now: Date = Date()) -> TimeInterval {
+        removeExpiredCooldowns(now: now)
+
+        var soonest = maximumEvaluationInterval
+        for cooldownExpiry in cooldowns.values {
+            soonest = min(soonest, max(0, cooldownExpiry.timeIntervalSince(now)))
+        }
+
+        for app in runningApps {
+            guard !app.isActive else { continue }
+            guard !pendingCleanups.contains(where: { $0.bundleID == app.bundleID }) else { continue }
+
+            let policy = policy(for: app)
+            guard !policy.isProtected else { continue }
+
+            let idleSeconds = max(0, now.timeIntervalSince(app.lastActiveAt))
+            if app.hasVisibleWindows, policy.visibleWindowAction != .off {
+                let remaining = TimeInterval(policy.visibleWindowMinutes * 60) - idleSeconds
+                soonest = min(soonest, max(0, remaining))
+            } else if !app.hasVisibleWindows, policy.idleQuitAction != .off {
+                let remaining = TimeInterval(policy.idleQuitMinutes * 60) - idleSeconds
+                soonest = min(soonest, max(0, remaining))
+            }
+        }
+
+        if soonest <= minimumEvaluationInterval {
+            return max(1, soonest)
+        }
+        return min(maximumEvaluationInterval, soonest)
     }
 
     private func cooldownDescription(for app: RunningApp) -> String? {

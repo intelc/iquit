@@ -126,7 +126,7 @@ private struct AskPromptView: View {
     var onSkip: () -> Void
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.05)) { context in
+        TimelineView(.periodic(from: .now, by: 1)) { context in
             let remaining = max(0, cleanup.dueAt.timeIntervalSince(context.date))
             let total = max(1, cleanup.dueAt.timeIntervalSince(cleanup.createdAt))
             let progress = max(0, min(1, remaining / total))

@@ -4,10 +4,15 @@ import SwiftUI
 
 @MainActor
 final class AskPromptWindowController {
-    private let panelSize = NSSize(width: 500, height: 88)
+    private let cardSize = NSSize(width: 370, height: 114)
+    private let panelPadding: CGFloat = 7
     private var panel: NSPanel?
     private var timeoutTask: Task<Void, Never>?
     private var currentCleanup: PendingCleanup?
+
+    private var panelSize: NSSize {
+        NSSize(width: cardSize.width + panelPadding * 2, height: cardSize.height + panelPadding * 2)
+    }
 
     private let onHide: (PendingCleanup) -> Void
     private let onQuit: (PendingCleanup) -> Void
@@ -55,15 +60,17 @@ final class AskPromptWindowController {
         )
 
         let host = NSHostingController(rootView: view)
+        host.view.frame = NSRect(origin: .zero, size: panelSize)
         host.view.wantsLayer = true
-        host.view.layer?.cornerRadius = 14
-        host.view.layer?.cornerCurve = .continuous
-        host.view.layer?.masksToBounds = true
+        host.view.layer?.masksToBounds = false
         let panel = panel ?? makePanel()
         panel.contentViewController = host
+        panel.contentView?.wantsLayer = true
+        panel.contentView?.layer?.masksToBounds = false
         panel.setContentSize(panelSize)
         self.panel = panel
         position(panel)
+        panel.invalidateShadow()
         panel.orderFrontRegardless()
 
         timeoutTask = Task { [weak self] in
@@ -94,7 +101,7 @@ final class AskPromptWindowController {
         )
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.isMovableByWindowBackground = true
@@ -116,6 +123,10 @@ final class AskPromptWindowController {
 }
 
 private struct AskPromptView: View {
+    private static let cornerRadius: CGFloat = 16
+    private static let cardWidth: CGFloat = 370
+    private static let cardHeight: CGFloat = 114
+
     var cleanup: PendingCleanup
     var icon: NSImage?
     var onHide: () -> Void
@@ -126,14 +137,14 @@ private struct AskPromptView: View {
     var onSkip: () -> Void
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
             let remaining = max(0, cleanup.dueAt.timeIntervalSince(context.date))
             let total = max(1, cleanup.dueAt.timeIntervalSince(cleanup.createdAt))
             let progress = max(0, min(1, remaining / total))
 
             VStack(spacing: 0) {
                 HStack(spacing: 11) {
-                    AppIconView(icon: icon, size: 36)
+                    AppIconView(icon: icon, size: 34)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(cleanup.displayName) \(cleanup.trigger.titleSuffix)")
@@ -146,8 +157,19 @@ private struct AskPromptView: View {
                     }
                     .frame(minWidth: 104, maxWidth: .infinity, alignment: .leading)
 
-                    Spacer(minLength: 4)
+                    Button(action: onSkip) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 18, height: 18)
+                    }
+                    .buttonStyle(PromptIconButtonStyle())
+                    .help("Do nothing now. iQuit will wait before asking again.")
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 11)
+                .padding(.bottom, 8)
 
+                HStack(spacing: 8) {
                     if cleanup.trigger == .visibleWindow {
                         PromptSplitActionButton(
                             title: "Hide",
@@ -179,34 +201,39 @@ private struct AskPromptView: View {
                     .buttonStyle(PromptTextButtonStyle())
                     .help("Never let iQuit hide or quit this app automatically.")
 
-                    Button(action: onSkip) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .frame(width: 18, height: 18)
-                    }
-                    .buttonStyle(PromptIconButtonStyle())
-                    .help("Do nothing now. iQuit will wait before asking again.")
+                    Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 14)
-                .padding(.vertical, 13)
+                .padding(.bottom, 9)
+
+                Spacer(minLength: 0)
 
                 GeometryReader { proxy in
-                    RoundedRectangle(cornerRadius: 0)
-                        .fill(Color.accentColor)
-                        .frame(width: proxy.size.width * progress)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(.white.opacity(0.12))
+                        Capsule()
+                            .fill(Color.accentColor)
+                            .frame(width: proxy.size.width * progress)
+                    }
                 }
                 .frame(height: 3)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 9)
                 .accessibilityLabel("\(Int(remaining)) seconds remaining")
             }
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .frame(width: Self.cardWidth, height: Self.cardHeight, alignment: .top)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
                     .strokeBorder(.white.opacity(0.16))
             }
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .compositingGroup()
+            .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(0.34), radius: 8, y: 3)
         }
-        .frame(width: 500, height: 88)
+        .frame(width: Self.cardWidth, height: Self.cardHeight)
+        .padding(7)
     }
 }
 

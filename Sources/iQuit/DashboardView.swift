@@ -532,7 +532,28 @@ struct PreferencesView: View {
     }
 }
 
-private struct MinuteComboBox: NSViewRepresentable {
+private struct MinuteComboBox: View {
+    @Binding var minutes: Int
+    var disabledLabel: String? = nil
+    var isEnabled: Bool = true
+
+    var body: some View {
+        HStack(spacing: 4) {
+            MinuteComboBoxField(minutes: $minutes, disabledLabel: disabledLabel, isEnabled: isEnabled)
+                .frame(width: isEnabled ? 58 : 76)
+
+            if isEnabled {
+                Text("m")
+                    .font(.callout.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 12, alignment: .leading)
+            }
+        }
+        .frame(width: isEnabled ? 74 : 76, alignment: .leading)
+    }
+}
+
+private struct MinuteComboBoxField: NSViewRepresentable {
     @Binding var minutes: Int
     var disabledLabel: String? = nil
     var isEnabled: Bool = true
@@ -543,12 +564,13 @@ private struct MinuteComboBox: NSViewRepresentable {
     func makeNSView(context: Context) -> NSComboBox {
         let comboBox = NSComboBox()
         comboBox.usesDataSource = false
-        comboBox.addItems(withObjectValues: presets.map { "\($0)m" })
+        comboBox.addItems(withObjectValues: presets.map { "\($0)" })
         comboBox.completes = false
         comboBox.isEditable = true
         comboBox.numberOfVisibleItems = presets.count
         comboBox.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         comboBox.controlSize = .small
+        comboBox.frame = NSRect(x: 0, y: 0, width: 58, height: 24)
         comboBox.delegate = context.coordinator
         comboBox.target = context.coordinator
         comboBox.action = #selector(Coordinator.commit)
@@ -558,7 +580,7 @@ private struct MinuteComboBox: NSViewRepresentable {
     func updateNSView(_ comboBox: NSComboBox, context: Context) {
         context.coordinator.parent = self
         comboBox.isEnabled = isEnabled
-        comboBox.stringValue = isEnabled ? "\(clamped(minutes))m" : (disabledLabel ?? "\(clamped(minutes))m")
+        comboBox.stringValue = isEnabled ? "\(clamped(minutes))" : (disabledLabel ?? "\(clamped(minutes))")
     }
 
     func makeCoordinator() -> Coordinator {
@@ -571,9 +593,9 @@ private struct MinuteComboBox: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, NSComboBoxDelegate {
-        var parent: MinuteComboBox
+        var parent: MinuteComboBoxField
 
-        init(parent: MinuteComboBox) {
+        init(parent: MinuteComboBoxField) {
             self.parent = parent
         }
 
@@ -598,7 +620,7 @@ private struct MinuteComboBox: NSViewRepresentable {
             let rawValue = Int(rawText) ?? parent.minutes
             let value = min(parent.range.upperBound, max(parent.range.lowerBound, rawValue))
             parent.minutes = value
-            comboBox.stringValue = "\(value)m"
+            comboBox.stringValue = "\(value)"
         }
     }
 }

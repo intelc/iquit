@@ -73,6 +73,10 @@ The dashboard keeps the two cleanup systems separate: blue for visible-window cl
 - Accessibility-backed per-window minimize when Window Access is granted
 - Developer ID signed and notarized DMG
 
+## Codex Prompts
+
+Sanitized Codex transcripts for the project are available in [`prompts/index.md`](prompts/index.md). The combined export lives at [`prompts/all-iquit-codex-prompts.md`](prompts/all-iquit-codex-prompts.md), with per-session files in [`prompts/sessions/`](prompts/sessions/).
+
 ## Run From Source
 
 ```sh

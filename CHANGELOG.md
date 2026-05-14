@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- Polished the floating prompt into a tighter two-row rounded card.
+- Smoothed the prompt countdown bar animation.
+- Fixed inline minute editing so only the number is editable and the unit stays visible.
+- Documented the sanitized Codex prompt export.
+
 ## 0.1.3
 
 - Refreshed README screenshots for the current menu, dashboard, and prompt UI.

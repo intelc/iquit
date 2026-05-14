@@ -173,11 +173,10 @@ private struct AskPromptView: View {
                     )
 
                     Button(action: onIgnore) {
-                        Image(systemName: "hand.raised")
-                            .font(.system(size: 13, weight: .semibold))
-                            .frame(width: 18, height: 18)
+                        Text("Never")
+                            .font(.callout.weight(.semibold))
                     }
-                    .buttonStyle(PromptIconButtonStyle())
+                    .buttonStyle(PromptTextButtonStyle())
                     .help("Never let iQuit hide or quit this app automatically.")
 
                     Button(action: onSkip) {
@@ -318,6 +317,37 @@ private struct PromptChevronButtonBody: View {
 private struct PromptIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         PromptIconButtonBody(configuration: configuration)
+    }
+}
+
+private struct PromptTextButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PromptTextButtonBody(configuration: configuration)
+    }
+}
+
+private struct PromptTextButtonBody: View {
+    let configuration: ButtonStyle.Configuration
+    @State private var isHovering = false
+
+    var body: some View {
+        configuration.label
+            .foregroundStyle(isHovering ? .primary : .secondary)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .background(
+                Color.white.opacity(configuration.isPressed ? 0.12 : (isHovering ? 0.16 : 0)),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(.white.opacity(isHovering ? 0.18 : 0), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(isHovering ? 0.28 : 0), radius: isHovering ? 7 : 0, y: isHovering ? 3 : 0)
+            .scaleEffect(configuration.isPressed ? 0.96 : (isHovering ? 1.04 : 1))
+            .animation(.easeOut(duration: 0.14), value: isHovering)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+            .onHover { isHovering = $0 }
     }
 }
 

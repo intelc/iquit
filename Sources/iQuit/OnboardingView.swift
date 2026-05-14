@@ -42,7 +42,7 @@ struct OnboardingView: View {
                 OnboardingCard(
                     title: "Protected Apps",
                     subtitle: "Per bundle",
-                    bodyText: "Use the lock button or the hand button on a prompt to ignore apps iQuit should never touch.",
+                    bodyText: "Use the lock button or Never on a prompt to ignore apps iQuit should not touch.",
                     systemImage: "lock.fill",
                     tint: .orange
                 )
